@@ -12,6 +12,7 @@ public class FileReader {
 	public final char ERROCHAR = 0x00,
 					  EOFCHAR  = 0xff;
 	
+	//Error in open file will cause the program to exit
 	FileReader(String filepath) {
 		filepath_ = filepath;
 		try {
@@ -25,6 +26,7 @@ public class FileReader {
 		bufreader = new BufferedReader(freader);
 	}
 	
+	//Don't care error in close file
 	public void close(){
 		try {
 			freader.close();
@@ -35,6 +37,7 @@ public class FileReader {
 		}
 	}
 	
+	//Throw to Scanner which will give more information
 	public char getSym() throws IOException{
 		char readchar = ERROCHAR;
 		int intchar = bufreader.read();
@@ -47,8 +50,28 @@ public class FileReader {
 		return readchar;
 	}
 	
+	public void showTest() throws IOException{
+		char showchar=getSym();
+		while(showchar!=EOFCHAR){
+			System.out.print(showchar);
+			getSym();
+		}
+	}
+	
 	private void showError(String errorMsg)
 	{
 		System.out.println(errorMsg);
+	}
+	
+	//main function for test this class
+	public static void main(String[] args){
+		String filename = args[0];
+		FileReader freader= new FileReader(filename);
+		try {
+			freader.showTest();
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
+		}
+		freader.close();
 	}
 }
