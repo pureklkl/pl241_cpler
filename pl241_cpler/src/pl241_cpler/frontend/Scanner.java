@@ -10,7 +10,8 @@ public class Scanner {
 					  NUMBERSTAT	= 3,
 					  ENDSTAT		= 4,
 					  
-					  IDSTART		= 1024;
+					  IDSTART		= 1024,
+					  NONVAL		= -1;	//indicate the Token don't have a value
 	
 	private FileReader fReader;
 	private char inputSym;
@@ -21,6 +22,7 @@ public class Scanner {
 	public int val;
 	public int id;
 	public int lineNumber;
+	public String str;
 	
 	//pre-populate keyword
 	private void StoreKeyword(){
@@ -44,6 +46,7 @@ public class Scanner {
 	
 	public Scanner(String filepath){
 		fReader = new FileReader(filepath);
+		lineNumber = 1;
 		accumId = IDSTART;
 		StoreKeyword();
 		Next();
@@ -66,6 +69,7 @@ public class Scanner {
 		token = erroToken;
 		int state = STARTSTAT;
 		String st = "";
+		val = NONVAL;
 		while(state != ENDSTAT){
 			switch(state){
 			case STARTSTAT		:if(Character.isWhitespace(inputSym)){
@@ -89,7 +93,7 @@ public class Scanner {
 									  st += inputSym;
 									  switch(inputSym){
 								  
-									  case 0xff : token = eofToken; state = ENDSTAT; break;
+									  case 0xff : token = eofToken; state = ENDSTAT; fReader.Close(); break;
 									  
 									  case '*'	: token	= timesToken; state = ENDSTAT; Next(); break;
 									  case '/'  : token	= divToken; state = ENDSTAT; Next(); break;
@@ -175,13 +179,30 @@ public class Scanner {
 			default				: break;
 			}
 		}
+		str = st;
 		return token;
 	}
 	
-	private void ShowError(String errorMsg)
-	{
+	private void ShowError(String errorMsg){
 		System.out.println("file read error in line :" + Integer.toString(lineNumber));
 		System.out.println(errorMsg);
+	}
+	
+	public void ShowTest(){
+		int testToken = GetSym();
+		while(testToken != eofToken){
+		System.out.println("line " + Integer.toString(lineNumber) + ":" +
+						   str + "\t" +
+						   "token = " + Integer.toString(testToken) +
+						   "val = " + Integer.toString(val));
+			testToken = GetSym();
+		}
+	}
+	
+	public static void main(String[] args){
+		String filename = args[0];
+		Scanner scan = new Scanner(filename);
+		scan.ShowTest();
 	}
 	
 	// Token - Value map
