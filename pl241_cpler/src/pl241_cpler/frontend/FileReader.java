@@ -5,60 +5,60 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class FileReader {
-	private BufferedReader bufreader;
-	private java.io.FileReader freader;
-	private String filepath_;
+	private BufferedReader bufReader;
+	private java.io.FileReader fReader;
+	private String filePath_;
 	
 	public final char ERROCHAR = 0x00,
 					  EOFCHAR  = 0xff;
 	
 	//Error in open file will cause the program to exit
-	FileReader(String filepath) {
-		filepath_ = filepath;
+	FileReader(String filePath) {
+		filePath_ = filePath;
 		try {
-			freader = new java.io.FileReader(filepath);
+			fReader = new java.io.FileReader(filePath);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-			showError("Fail to open file :" + filepath);
-			showError(e.getMessage());
+			ShowError("Fail to open file :" + filePath);
+			ShowError(e.getMessage());
 			System.exit(0);
 		}
-		bufreader = new BufferedReader(freader);
+		bufReader = new BufferedReader(fReader);
 	}
 	
 	//Don't care error in close file
-	public void close(){
+	public void Close(){
 		try {
-			freader.close();
+			fReader.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			showError("Fail to close file :" + filepath_);
-			showError(e.getMessage());
+			ShowError("Fail to close file :" + filePath_);
+			ShowError(e.getMessage());
 		}
 	}
 	
 	//Throw to Scanner which will give more information
-	public char getSym() throws IOException{
-		char readchar = ERROCHAR;
-		int intchar = bufreader.read();
+	public char GetSym() throws IOException{
+		char readChar = ERROCHAR;
+		int intchar = bufReader.read();
 		if(intchar == -1){
-			readchar = EOFCHAR;
+			readChar = EOFCHAR;
 		}
 		else{
-			readchar = (char) intchar;
+			readChar = (char) intchar;
 		}
-		return readchar;
+		return readChar;
 	}
 	
-	public void showTest() throws IOException{
-		char showchar=getSym();
-		while(showchar!=EOFCHAR){
-			System.out.print(showchar);
-			getSym();
+	public void ShowTest() throws IOException{
+		char showChar=GetSym();
+		while(showChar!=EOFCHAR){
+			System.out.print(showChar);
+			GetSym();
 		}
 	}
 	
-	private void showError(String errorMsg)
+	private void ShowError(String errorMsg)
 	{
 		System.out.println(errorMsg);
 	}
@@ -68,10 +68,10 @@ public class FileReader {
 		String filename = args[0];
 		FileReader freader= new FileReader(filename);
 		try {
-			freader.showTest();
+			freader.ShowTest();
 		} catch (IOException e) {
 			System.out.println(e.getMessage());
 		}
-		freader.close();
+		freader.Close();
 	}
 }
