@@ -61,6 +61,7 @@ public class Scanner {
 			inputSym = fReader.GetSym();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			System.out.println("read next char fail!");
 			ShowError(e.getMessage());
 		}
 	}

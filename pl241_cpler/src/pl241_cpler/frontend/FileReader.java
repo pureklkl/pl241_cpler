@@ -54,7 +54,7 @@ public class FileReader {
 		char showChar=GetSym();
 		while(showChar!=EOFCHAR){
 			System.out.print(showChar);
-			GetSym();
+			showChar = GetSym();
 		}
 	}
 	
