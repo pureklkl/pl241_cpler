@@ -94,7 +94,7 @@ public class Scanner {
 									  st += inputSym;
 									  switch(inputSym){
 								  
-									  case 0xff : token = eofToken; state = ENDSTAT; fReader.Close(); break;
+									  case 0x03 : token = eofToken; state = ENDSTAT; fReader.Close(); break;
 									  
 									  case '*'	: token	= timesToken; state = ENDSTAT; Next(); break;
 									  case '+'	: token	= plusToken; state = ENDSTAT; Next(); break;
@@ -145,7 +145,7 @@ public class Scanner {
 													do{
 														Next();
 													}while(inputSym!='\n');
-													state = STARTSTAT;
+													st = ""; state = STARTSTAT;
 												  }break;			  
 												  
 									default		: if(st.equals("<")){
@@ -203,7 +203,7 @@ public class Scanner {
 		while(testToken != eofToken){
 		System.out.println("line " + Integer.toString(lineNumber) + ":" +
 						   str + "\t" +
-						   "token = " + Integer.toString(testToken) +
+						   "token = " + Integer.toString(testToken) + " " +
 						   "val = " + Integer.toString(val));
 			testToken = GetSym();
 		}

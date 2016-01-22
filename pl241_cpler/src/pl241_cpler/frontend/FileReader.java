@@ -10,7 +10,7 @@ public class FileReader {
 	private String filePath_;
 	
 	public final char ERROCHAR = 0x00,
-					  EOFCHAR  = 0xff;
+					  EOFCHAR  = 0x03;//uncertain
 	
 	//Error in open file will cause the program to exit
 	FileReader(String filePath) {
