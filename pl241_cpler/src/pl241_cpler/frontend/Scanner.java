@@ -96,12 +96,12 @@ public class Scanner {
 									  case 0xff : token = eofToken; state = ENDSTAT; fReader.Close(); break;
 									  
 									  case '*'	: token	= timesToken; state = ENDSTAT; Next(); break;
-									  case '/'  : token	= divToken; state = ENDSTAT; Next(); break;
 									  case '+'	: token	= plusToken; state = ENDSTAT; Next(); break;
 									  case '-'	: token	= minusToken; state = ENDSTAT; Next(); break;
 									
-									  //These four character will move state to SPECALSTATE
-									  //Special Token are ==, !=, <, <=, >, >= and <-
+									  //These five character will move state to SPECALSTATE
+									  //Special Token are //, ==, !=, <, <=, >, >= and <-
+									  case '/'	:
 									  case '='	:  
 									  case '!'	: 
 									  case '<'	: 
@@ -126,7 +126,7 @@ public class Scanner {
 												  	st += inputSym;
 												  	token = becomesToken;
 												  	Next();
-												  }break;
+												  }state = ENDSTAT;break;
 												  
 									case '='	: if(st.equals("<")){
 													token = leqToken;
@@ -137,16 +137,25 @@ public class Scanner {
 												  }else if(st.equals("!")){
 													token = neqToken;
 												  }
-												  Next();
-												  st += inputSym;break;
+												  st += inputSym;
+												  Next();state = ENDSTAT;break;
+									
+									case '/'	: if(st.equals("/")){
+													do{
+														Next();
+													}while(inputSym!='\n');
+													state = STARTSTAT;
+												  }break;			  
 												  
 									default		: if(st.equals("<")){
 													token = lssToken;
 												  }else if(st.equals(">")){
 													token = gtrToken;
-												  }break;
+												  }else if(st.equals("/")){
+													token = divToken;  
+												  }state = ENDSTAT;break;
 								  }
-								  state = ENDSTAT;break;
+								  break;
 								  
 			case IDENTSTAT		: if(Character.isLetter(inputSym)||Character.isDigit(inputSym)){
 									st += inputSym;
