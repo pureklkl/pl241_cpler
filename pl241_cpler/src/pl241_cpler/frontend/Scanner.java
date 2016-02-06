@@ -81,7 +81,6 @@ public class Scanner {
 								  }
 								  else if(Character.isLetter(inputSym)){
 									  st += inputSym;
-									  id = GetNextId();
 									  state = IDENTSTAT;
 									  Next();
 								  }
@@ -164,8 +163,14 @@ public class Scanner {
 								  }else{
 								    Integer tmp = identMap.get(st);
 								    if(tmp!=null){
-								    	token = tmp.intValue();
+								    	if(tmp < IDSTART)
+								    		token = tmp.intValue();
+								    	else{
+								    		token = ident;
+								    		id = tmp;
+								    	}
 								    }else{
+								    	identMap.put(st, GetNextId());
 								    	token = ident;
 								    }
 									state = ENDSTAT;  
