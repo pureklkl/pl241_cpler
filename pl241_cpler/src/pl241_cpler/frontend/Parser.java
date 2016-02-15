@@ -1,7 +1,10 @@
 package pl241_cpler.frontend;
 
 import java.util.ArrayList;
-import pl241_cpler.ir.*;;
+import java.util.HashSet;
+
+import pl241_cpler.ir.*;
+import pl241_cpler.ir.VariableSet.variable;
 
 /**
   **********************************EBNF of PL241:*******************************
@@ -63,8 +66,277 @@ public class Parser {
 		System.out.println("In line "+new Integer(lineNumber).toString()+":"+msg);
 	}
 	
+	//designator = ident{ "[" expression "]" }.
+	//def-use, use-def
+	private Operand designator(){
+		VariableSet.variable var = varSet.retrieval(id);
+		if(var != null){
+			next();
+			ArrayList<Operand> dims = new ArrayList<Operand>();
+			if(var.getType() == opArray){
+				while(token == openbracketToken){
+					next();
+					dims.add(expression());
+					if(token == closebracketToken){
+						next();
+					}else{
+						showError("expected ] in designator");
+					}
+				}
+				VariableSet.array var_array = (VariableSet.array)var;
+				if(var_array.getDims().size()!=dims.size()){
+					showError("dimension size error in designator");
+				}
+				var_array.setAddr(calArrayLocate(var_array, dims));
+			}
+			return var;
+		}else{
+			showError("Unknow identifier in designator");
+		}
+
+		return null;
+	}
+	
+	//factor = designator | number | “(“ expression “)” | funcCall .
+	private Operand factor(){
+		Operand res = null;
+		switch(token){
+		case ident:				res = designator();
+								if(res.getType() == opArray){
+									Instruction addrLoad = Instruction.genIns(load, null, ((VariableSet.array)res).getAddr(), res);
+									cfg.addInsToCurBlock(addrLoad);
+									res = addrLoad;
+								}else if(((VariableSet.variable)res).getDef().getInsType() == decl){
+									Instruction addrLoad = Instruction.genIns(load, null, res);
+									res = addrLoad;
+								}break;
+		case number:			res = new Constant(val);next();break;
+		case openparenToken: 	res = expression();
+								if(token == closeparenToken){
+									next();
+								}
+								else{
+									showError("expect ) in factor !");
+								}break;
+		case callToken: 		res = funCall();
+								if(res == null){
+									showError("Call non return function in factor !");
+								}break;
+		default:				showError("Unkonw factor !");break;
+		}
+		return res;
+	}
+	
+	//term = factor { (“*” | “/”) factor}.
+	private Operand term(){
+		Operand x = factor();
+		Operand res = null;
+		while(token == timesToken || token == divToken){
+			//Auto map by token - instruction
+			int arthOp = token;
+			next();
+			Operand y = factor();
+			res = Instruction.genIns(arthOp, x, y);
+			cfg.addInsToCurBlock((Instruction)res);
+		}
+		if(res == null)
+			return x;
+		else
+			return res;
+	}
+	
+	//expression = term {(“+” | “-”) term}.
+	private Operand expression(){
+		Operand x = term();
+		Operand res = null;
+		while(token == plusToken || token == minusToken){
+			//Auto map by token - instruction
+			int arthOp = token;
+			next();
+			Operand y = term();
+			res = Instruction.genIns(arthOp, x, y);
+			cfg.addInsToCurBlock((Instruction)res);
+		}
+		if(res == null)
+			return x;
+		else
+			return res;
+	}
+	
+	//relation = expression relOp expression.
+	private void relation(){
+		Operand x = expression();
+		if(isCompare()){
+			//Auto reverse by change map between token and instruction
+			int relOp = token;
+			next();
+			Operand y = expression();
+			Operand res = Instruction.genIns(cmp, x, y);
+			cfg.addInsToCurBlock((Instruction)res);
+			cfg.addAndPushIns(Instruction.genIns(relOp, res, null));
+		}
+	}
+	
+	//assignment = “let” designator “<-” expression.
+	//???? is global should be stored or use just move - now just move
+	private void assignment(){
+		next();
+		Operand target = designator();
+		//Create Phi function here
+		if(token == becomesToken){
+			next();
+			Operand value = expression();
+			if(target.getType() == opArray){
+				cfg.addInsToCurBlock(Instruction.genIns(store, value, ((VariableSet.array)target).getAddr(), target));
+			}else{
+				cfg.addInsToCurBlock(Instruction.genIns(move, value, target));
+			}
+			
+		}else{
+			showError("<- expected!");
+		}
+	}
+	
+	//funcCall = “call” ident [ “(“ [expression { “,” expression } ] “)” ].
+	//???? seems something happen here for passing parameters
+	//???? currently to load return value indicate by function
+	//???? pre-compile and later fix the function define should be down
+	//???? record use of global variable, store here as parameter
+	private Operand funCall(){
+		next();
+		Operand returnVal = null;
+		if(token == ident){
+			Operand funcCheck = varSet.retrieval(id);
+			VariableSet.function func = null;
+			if(funcCheck.getType() != opFunc){
+				showError("function name expected");
+			}
+			else{
+				func = (VariableSet.function)funcCheck;
+				//if not recursive, copy called function's used global variable to current function
+				if(func != cfg.curFunc()){
+					cfg.curFunc().addGV(func.getUsedGV());
+				}
+			}
+			next();
+			if(token == openparenToken){
+				int index = 0;
+				next();
+				if(isExpression()){
+					Operand var = expression();
+					cfg.addInsToCurBlock(Instruction.genIns(store, var, func.getParam(index++)));
+					while(token == commaToken){
+						next();
+						var = expression();
+						cfg.addInsToCurBlock(Instruction.genIns(store, var, func.getParam(index++)));
+					}
+				}
+				if(token == closeparenToken){
+					next();
+				}
+				else{
+					showError(") expected in funtion call");
+				}
+				if(index != func.paramNum()){
+					showError("expected " + Integer.toString(func.paramNum())+"parameters in function call");
+				}
+			}
+			
+			HashSet<VariableSet.variable> usedGV = cfg.curFunc().getUsedGV();
+			for(VariableSet.variable i : usedGV){
+				//???? optimize here cancel stored var
+				cfg.addInsToCurBlock(Instruction.genIns(store, i, null));
+			}
+			//store global parameter here
+			cfg.addInsToCurBlock(Instruction.genIns(bra, null, func));
+			cfg.addAndMoveToNextBlock();
+			if(func.getReturnState()){
+				returnVal = Instruction.genIns(load, func, null);
+				cfg.addInsToCurBlock((Instruction)returnVal);
+				return returnVal;
+			}
+		}else{
+			showError("identifier expected after function call");
+		}
+		return null;
+	}
+	
+	private void ifStatement(){
+		next();
+		relation();
+		if(token == thenToken){
+			cfg.addAndMoveToNextBlock();
+			next();
+			stateSequence();
+			if(token == elseToken){
+				cfg.addAndPushIns(Instruction.genIns(bra, null, null));
+				cfg.addAndMoveToSingleBlock();
+				cfg.fix2();
+				next();
+				stateSequence();
+			}
+			if(token == fiToken){
+				cfg.addAndMoveToNextBlock();
+				cfg.fix();
+				//push phi function here
+			}else{
+				showError("Expect fi in if statement!");
+			}
+		}else{
+			showError("Expect then in if statement");
+		}
+	}
+	
+	//whileStatement = “while” relation “do” StatSequence “od”.
+	private void whileStatement(){
+		next();
+		cfg.addAndMoveToNextBlock();
+		relation();
+		if(token == doToken){
+			cfg.pushCurBlock();
+			cfg.addAndMoveToNextBlock();
+			next();
+			stateSequence();
+			cfg.loopBack();//add bra at the end of loop and link back to while
+			//push phi function here
+			if(token == odToken){
+				cfg.addAndMoveToNextBlock();
+				cfg.fix();//fix bra in while block
+			}else{
+				showError("whileStatement expect 'od'");
+			}
+		}else{
+			showError("whileStatement expect 'do'");
+		}
+	}
+	
+	private void returnStatement(){
+		next();
+		Operand value = expression();
+		cfg.addInsToCurBlock(Instruction.genIns(store, value, cfg.curFunc()));
+		//means function return - addr will be determined when code generation
+		cfg.addInsToCurBlock(Instruction.genIns(bra, null, null));
+	}
+	
+	//statement = assignment | funcCall | ifStatement | whileStatement | returnStatement.
+	private void statement(){
+		switch(token){
+		case letToken: 		assignment(); 		break;
+		case callToken: 	funCall();			break;
+		case ifToken:		ifStatement();		break;
+		case whileToken:	whileStatement();	break;
+		case returnToken: 	returnStatement();	break;
+		default:			showError("Unknow statement!");break;
+		}
+	}
+	
+	//statSequence = statement { “;” statement }.
 	private void stateSequence(){
-		
+		statement();
+		while(token == semiToken){
+			next();
+			statement();
+		}
 	}
 	
 	/**
@@ -82,6 +354,10 @@ public class Parser {
 			}
 			
 			if(token == beginToken){
+				varSet.addAndMoveToNewScope();
+				VariableSet.function func = varSet.new function();
+				func.setName("main");
+				cfg.addNewFuncBlock(func);
 				stateSequence();
 				if(token == endToken){
 					if(token == periodToken){
@@ -137,6 +413,7 @@ public class Parser {
 			if(dims == null){
 				showError("Expected [] in array decleration");
 			}
+			res = varSet.new array(dims);
 			next();
 			return res;
 		}
@@ -163,6 +440,7 @@ public class Parser {
 					if(!varSet.add(id, varType.addNew(str))){
 						showError("Variable redefined, decleration fail!");
 					}
+					
 				}else{
 					showError("Expected Identifier");
 				}
@@ -237,7 +515,7 @@ public class Parser {
 			next();
 			if(token == ident){
 				VariableSet.function func = varSet.new function();
-				if(varSet.add(id, func)){
+				if(!varSet.add(id, func)){
 					showError("Variable redefined, decleration fail!");
 				}
 				func.setName(str);
@@ -270,13 +548,57 @@ public class Parser {
 		
 	}
 	
+	private Instruction calArrayLocate(VariableSet.array a, ArrayList<Operand> dimList){
+		ArrayList<Integer> dimSize = a.getDims();
+		Instruction prevAddr = null, resAddr = null;
+		for(int i = 0; i < dimSize.size(); i++){
+			Operand d = dimList.get(i);
+			if(dimSize.size() != i+1){
+				Constant dS = new Constant(dimSize.get(i+1));
+				Instruction curOffset = Instruction.genIns(mul, d, dS);
+				cfg.addInsToCurBlock(curOffset);
+				if(prevAddr != null){
+					prevAddr = Instruction.genIns(add, prevAddr, curOffset);
+					cfg.addInsToCurBlock(prevAddr);
+				}else{
+					prevAddr = curOffset;
+				}
+			}else{
+				if(prevAddr != null){
+					Instruction lastDim = Instruction.genIns(add, prevAddr, d);
+					resAddr = Instruction.genIns(adda, lastDim, a);
+				}else{
+					resAddr = Instruction.genIns(adda, d, a);
+				}
+			}
+			
+		}
+		return resAddr;
+	}
+	
 	//statement = assignment | funcCall | ifStatement | whileStatement | returnStatement.
 	private boolean isStatement(){
-		return   (token == letToken	||
-				  token == callToken|| 
-				  token == ifToken	||
-				  token == whileToken||
-				  token == returnToken);
+		return   (token >= letToken	&& token <= returnToken);
+	}
+	
+	//expression start with ident, number, ( and call
+	private boolean isExpression(){
+		return (token >= openparenToken && token <= ident)||(token == callToken);
+	}
+	
+	//==, !=, <, >=, <=, >
+	private boolean isCompare(){
+		return (token >= 20)&&( token <= 25);
+	}
+	
+	public ControlFlowGraph getCFG(){
+		return cfg;
+	}
+	
+	public static void main(String[] args){
+		Parser p = new Parser(args[0]);
+		p.startParse();
+		p.getCFG().print();
 	}
 	
 	// Token - Value map
@@ -333,11 +655,46 @@ public class Parser {
 						mainToken		=	200,//	main
 						eofToken		=	255;//	end of file
 	
+	//scope
+	static final int 	global			=	0,
+						local			=	1;
+	
 	// Operand - Value map
 	static final int	opScale			= 	0,
 						opArray			= 	1,
 						opIns			=	2,
-						opConstant		=	3;
-			
+						opConstant		=	3,
+						opFunc			=	4,
+						opBlock			=	5;
 	
+	//instruction code
+	public static final int
+						decl			=	-1,
+						neg				= 	0,
+						add				=	11,
+						sub				=	12,
+						mul				=	1,
+						div				=	2,
+						cmp				=	5,
+
+						adda			=	40,
+						load			=	41,
+						store			=	42,
+						move			=	43,
+						phi				=	44,
+						end				=	45,
+						bra				=	46,
+						
+						bne				=	20,
+						beq				=	21,
+						ble				=	25,
+						blt				=	23,
+						bge				=	22,
+						bgt				=	24,
+						
+						read			=	30,
+						write			=	31,
+						writeNL			=	32;
+	
+
 }
