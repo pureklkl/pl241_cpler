@@ -55,6 +55,7 @@ public class Parser {
 		val = s.val;
 		lineNumber = s.lineNumber;
 		str = s.str;
+		id = s.id;
 	}
 	
 	public void startParse(){
@@ -106,12 +107,9 @@ public class Parser {
 									Instruction addrLoad = Instruction.genIns(load, null, ((VariableSet.array)res).getAddr(), res);
 									cfg.addInsToCurBlock(addrLoad);
 									res = addrLoad;
-								}else if(((VariableSet.variable)res).getDef().getInsType() == decl){
-									Instruction addrLoad = Instruction.genIns(load, null, res);
-									res = addrLoad;
 								}break;
 		case number:			res = new Constant(val);next();break;
-		case openparenToken: 	res = expression();
+		case openparenToken: 	next();res = expression();
 								if(token == closeparenToken){
 									next();
 								}
@@ -190,6 +188,8 @@ public class Parser {
 				cfg.addInsToCurBlock(Instruction.genIns(store, value, ((VariableSet.array)target).getAddr(), target));
 			}else{
 				cfg.addInsToCurBlock(Instruction.genIns(move, value, target));
+				if(((VariableSet.scale)target).getScopeLevel() == global)
+					cfg.curFunc().addGV((VariableSet.scale)target);
 			}
 			
 		}else{
@@ -207,6 +207,7 @@ public class Parser {
 		Operand returnVal = null;
 		if(token == ident){
 			Operand funcCheck = varSet.retrieval(id);
+			int funcId = id;
 			VariableSet.function func = null;
 			if(funcCheck.getType() != opFunc){
 				showError("function name expected");
@@ -214,7 +215,7 @@ public class Parser {
 			else{
 				func = (VariableSet.function)funcCheck;
 				//if not recursive, copy called function's used global variable to current function
-				if(func != cfg.curFunc()){
+				if(func != cfg.curFunc()&&!(isDefaultFunc(funcId))){
 					cfg.curFunc().addGV(func.getUsedGV());
 				}
 			}
@@ -222,9 +223,24 @@ public class Parser {
 			if(token == openparenToken){
 				int index = 0;
 				next();
+				//inline for default function with non parameter
+				if(isDefaultFunc(funcId)){
+					switch(funcId){
+					case OutputNewLine	:	cfg.addInsToCurBlock(Instruction.genIns(writeNL, null, null));break;
+					case InputNum		: 	returnVal = Instruction.genIns(read, null, null);cfg.addInsToCurBlock((Instruction)returnVal);break;
+					}
+				}
 				if(isExpression()){
 					Operand var = expression();
-					cfg.addInsToCurBlock(Instruction.genIns(store, var, func.getParam(index++)));
+					//inline for default function with one parameter
+					if(isDefaultFunc(funcId)){
+						switch(funcId){
+						case OutputNum		:	cfg.addInsToCurBlock(Instruction.genIns(write, var, null));
+												index++;break;
+						}
+					}else{
+						cfg.addInsToCurBlock(Instruction.genIns(store, var, func.getParam(index++)));
+					}
 					while(token == commaToken){
 						next();
 						var = expression();
@@ -242,11 +258,16 @@ public class Parser {
 				}
 			}
 			
+			if(isDefaultFunc(funcId)){
+					return returnVal;
+			}
+			
 			HashSet<VariableSet.variable> usedGV = cfg.curFunc().getUsedGV();
 			for(VariableSet.variable i : usedGV){
 				//???? optimize here cancel stored var
 				cfg.addInsToCurBlock(Instruction.genIns(store, i, null));
 			}
+			
 			//store global parameter here
 			cfg.addInsToCurBlock(Instruction.genIns(bra, null, func));
 			cfg.addAndMoveToNextBlock();
@@ -261,14 +282,18 @@ public class Parser {
 		return null;
 	}
 	
+	//for each if, add phi functions to list, each if gets it phi from end of the list to itself's list
+	//recode the if/else route to help find the def of the ssa value
 	private void ifStatement(){
 		next();
 		relation();
 		if(token == thenToken){
+			cfg.pushCurRoute(ifRoute);
 			cfg.addAndMoveToNextBlock();
 			next();
 			stateSequence();
 			if(token == elseToken){
+				cfg.changeCurRoute(elseRoute);
 				cfg.addAndPushIns(Instruction.genIns(bra, null, null));
 				cfg.addAndMoveToSingleBlock();
 				cfg.fix2();
@@ -276,8 +301,10 @@ public class Parser {
 				stateSequence();
 			}
 			if(token == fiToken){
+				cfg.popCurRoute();
 				cfg.addAndMoveToNextBlock();
 				cfg.fix();
+				next();
 				//push phi function here
 			}else{
 				showError("Expect fi in if statement!");
@@ -294,14 +321,17 @@ public class Parser {
 		relation();
 		if(token == doToken){
 			cfg.pushCurBlock();
+			cfg.pushCurRoute(whileRoute);
 			cfg.addAndMoveToNextBlock();
 			next();
 			stateSequence();
 			cfg.loopBack();//add bra at the end of loop and link back to while
 			//push phi function here
 			if(token == odToken){
+				cfg.popCurRoute();
 				cfg.addAndMoveToNextBlock();
 				cfg.fix();//fix bra in while block
+				next();
 			}else{
 				showError("whileStatement expect 'od'");
 			}
@@ -312,6 +342,7 @@ public class Parser {
 	
 	private void returnStatement(){
 		next();
+		cfg.curFunc().setReturnState(true);
 		Operand value = expression();
 		cfg.addInsToCurBlock(Instruction.genIns(store, value, cfg.curFunc()));
 		//means function return - addr will be determined when code generation
@@ -357,9 +388,12 @@ public class Parser {
 				varSet.addAndMoveToNewScope();
 				VariableSet.function func = varSet.new function();
 				func.setName("main");
+				cfg.resetCurRoute();
 				cfg.addNewFuncBlock(func);
+				next();
 				stateSequence();
 				if(token == endToken){
+					next();
 					if(token == periodToken){
 						endCFG();
 					}else{
@@ -395,10 +429,8 @@ public class Parser {
 				if(token == number){
 					if(dims == null){
 						dims = new ArrayList<Integer>();
-					}else{
-						dims.add(val);
-					}
-					
+					} 
+					dims.add(val);
 				}else{
 					showError("Expected number after [ in array decleration");
 				}
@@ -414,7 +446,6 @@ public class Parser {
 				showError("Expected [] in array decleration");
 			}
 			res = varSet.new array(dims);
-			next();
 			return res;
 		}
 		next();
@@ -466,7 +497,9 @@ public class Parser {
 			if(isStatement())
 				stateSequence();
 			if(token == endToken){
-				showError("Expected }");
+				next();
+			}else{
+				showError("Expected } in funcBody");
 			}
 		}else{
 			showError("Expected {");
@@ -512,34 +545,33 @@ public class Parser {
 	private void funcDecl(){
 		next();
 		if(token == ident){
+			VariableSet.function func = varSet.new function();
+			if(!varSet.add(id, func)){
+				showError("Function redefined, decleration fail!");
+			}
+			func.setName(str);
+			cfg.resetCurRoute();
+			cfg.addNewFuncBlock(func);
+			varSet.addAndMoveToNewScope();
 			next();
-			if(token == ident){
-				VariableSet.function func = varSet.new function();
-				if(!varSet.add(id, func)){
-					showError("Variable redefined, decleration fail!");
-				}
-				func.setName(str);
-				cfg.addNewFuncBlock(func);
-				varSet.addAndMoveToNewScope();
-				if(token  == openparenToken)
-					formalParam(func);
+			if(token  == openparenToken)
+				formalParam(func);
+			if(token == semiToken){
+				next();
+				funcBody(func);
 				if(token == semiToken){
+					varSet.returnToParentScope();
 					next();
-					funcBody(func);
-					if(token == semiToken){
-						varSet.returnToParentScope();
-						next();
-					}
-					else{
-						showError("Expected ; after function body");
-					}
-					
 				}
 				else{
-					showError("Expected ; after function Identifer or Parameters");
+					showError("Expected ; after function body");
 				}
 			}
-		}else{
+			else{
+				showError("Expected ; after function Identifer or Parameters");
+			}
+		}
+		else{
 			showError("Expected Identifier in funcDecl");
 		}
 	}
@@ -570,6 +602,7 @@ public class Parser {
 				}else{
 					resAddr = Instruction.genIns(adda, d, a);
 				}
+				cfg.addInsToCurBlock(resAddr);
 			}
 			
 		}
@@ -589,6 +622,10 @@ public class Parser {
 	//==, !=, <, >=, <=, >
 	private boolean isCompare(){
 		return (token >= 20)&&( token <= 25);
+	}
+	
+	private boolean isDefaultFunc(int id){
+		return (id>defaultFuncMin)&&(id<defaultFuncMax);
 	}
 	
 	public ControlFlowGraph getCFG(){
@@ -696,5 +733,14 @@ public class Parser {
 						write			=	31,
 						writeNL			=	32;
 	
-
+	static final int 	defaultFuncMin	=	255,
+						defaultFuncMax	=	1024,
+						OutputNum      	=	300,
+						OutputNewLine 	= 	301,//OutPutNum(x)
+						InputNum		=	302;//x=InputNum()
+	
+	static final int normalRoute 	= 0,
+			 		 ifRoute		= 1,
+			 		 elseRoute		= 2,
+					 whileRoute		= 3;
 }

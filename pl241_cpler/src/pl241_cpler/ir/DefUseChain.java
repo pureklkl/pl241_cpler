@@ -9,38 +9,19 @@ public class DefUseChain {
 		Instruction defIns;
 		LinkedList<Instruction> usedIns;
 		LinkedList<Instruction> nextDef;
-		LinkedList<Instruction> prevDef;
+		LinkedList<Instruction> prevDef;//only phi ins has multiple defs for same var
 	}
+
 	Stack<Instruction> stackedDef;
-	
-	static int defStatus;
-	public static final int normalDef 	= 	1;
-	public static final int ifdef		=	2;
-	public static final int whiledef	=	3;
+	Stack<chainNode> defchain = new Stack<chainNode>();
 	
 	public DefUseChain(){
 		duHead = new chainNode();
 		duHead.defIns = Instruction.genIns(decl, null, null);
-		curDef = duHead;
-	}
-	
-	public void setDefStatus(int status){
-		defStatus = status;
+		defchain.push(duHead);
 	}
 	
 	public void addDef(){
-		
-	}
-	
-	public void setIfDef(){
-		
-	}
-	
-	public void setElseDef(){
-		
-	}
-	
-	public void addJoinDef(){
 		
 	}
 	
@@ -49,11 +30,10 @@ public class DefUseChain {
 	}
 	
 	public Instruction getDef(){
-		return curDef.defIns;
+		return defchain.peek().defIns;
 	}
 	
 	chainNode duHead;
-	chainNode curDef;
 	
 	public static final int decl = -1; 
 }

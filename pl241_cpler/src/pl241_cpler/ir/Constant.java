@@ -13,7 +13,7 @@ public class Constant implements Operand {
 	}
 	
 	public String print(){
-		return "#" + Integer.toString(val) + " ";
+		return "#" + Integer.toString(val) + "\t";
 	}
 	
 	private int val;

@@ -10,6 +10,7 @@ public class Scanner {
 					  NUMBERSTAT	= 3,
 					  ENDSTAT		= 4,
 					  
+					  tokenEnd		= 256,
 					  IDSTART		= 1024,
 					  NONVAL		= -1;	//indicate the Token don't have a value
 	
@@ -25,7 +26,7 @@ public class Scanner {
 	public String str;
 	
 	//pre-populate keyword
-	private void StoreKeyword(){
+	private void storeKeyword(){
 		identMap = new HashMap<String, Integer>();
 		identMap.put("then", thenToken);
 		identMap.put("do", doToken);
@@ -44,11 +45,18 @@ public class Scanner {
 		identMap.put("main", mainToken);
 	}
 	
+	private void storePredefFunc(){
+		identMap.put("OutputNum", OutputNum);
+		identMap.put("OutputNewLine", OutputNewLine);
+		identMap.put("InputNum", InputNum);
+	}
+	
 	public Scanner(String filepath){
 		fReader = new FileReader(filepath);
 		lineNumber = 1;
 		accumId = IDSTART;
-		StoreKeyword();
+		storeKeyword();
+		storePredefFunc();
 		Next();
 	}
 	
@@ -118,6 +126,8 @@ public class Scanner {
 									  
 									  case '{'	: token	= beginToken; state = ENDSTAT; Next(); break;
 									  case '}'	: token	= endToken; state = ENDSTAT; Next(); break;
+									  
+									  case '#'	: do{Next();}while(inputSym!='\n');st = ""; state = STARTSTAT;break;
 									  }
 								  }break;
 			
@@ -163,14 +173,15 @@ public class Scanner {
 								  }else{
 								    Integer tmp = identMap.get(st);
 								    if(tmp!=null){
-								    	if(tmp < IDSTART)
+								    	if(tmp < tokenEnd)
 								    		token = tmp.intValue();
 								    	else{
 								    		token = ident;
 								    		id = tmp;
 								    	}
 								    }else{
-								    	identMap.put(st, GetNextId());
+								    	id = GetNextId();
+								    	identMap.put(st, id);
 								    	token = ident;
 								    }
 									state = ENDSTAT;  
@@ -273,4 +284,8 @@ public class Scanner {
 						beginToken		=	150,//	{
 						mainToken		=	200,//	main
 						eofToken		=	255;//	end of file
+	
+	private int 		OutputNum      =	300,
+						OutputNewLine  =	301,//OutPutNum(x)
+						InputNum		=	302;
 }

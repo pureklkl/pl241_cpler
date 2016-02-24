@@ -2,6 +2,9 @@ package pl241_cpler.ir;
 
 import java.util.HashMap;
 import java.util.HashSet;
+
+import pl241_cpler.ir.VariableSet.function;
+
 import java.util.ArrayList;
 
 public class VariableSet {
@@ -10,8 +13,24 @@ public class VariableSet {
 	
 	public VariableSet(){
 		curScope = new variableScope(null);
+		addPredefFunc("OutputNum", 1, OutputNum);
+		addPredefFunc("OutputNewLine", 0, OutputNewLine);
+		addPredefFunc("OutputNewLine", 0, InputNum);
 	}
 	
+	private void addPredefFunc(String name, int varnum, int id){
+		VariableSet.function func = new function();
+		func.setName(name);
+		add(id, func);
+		addAndMoveToNewScope();
+		for(int i = 0; i < varnum; i++){
+			func.addParam(new scale()).setName("v"+Integer.toString(i));
+		}
+		returnToParentScope();
+		
+	}
+	
+	//???? make sure the variable id
 	public boolean add(int identId, variable var){
 		if(curScope.varSet.containsKey(identId)){
 			return false;
@@ -26,8 +45,8 @@ public class VariableSet {
 		if(res == null){
 			variableScope tmp = curScope.parentScope;
 			while(res == null && tmp != null){
-				tmp = tmp.parentScope;
 				res = tmp.varSet.get(identId);
+				tmp = tmp.parentScope;
 			}
 		}
 		return res;
@@ -72,7 +91,7 @@ public class VariableSet {
 		
 		public abstract variable addNew(String addName);
 		
-		private DefUseChain du;
+		private DefUseChain du = new DefUseChain();
 		private variableScope locate;
 		private int id = variableCreated++;
 		protected String name;
@@ -95,7 +114,7 @@ public class VariableSet {
 		}
 		
 		public String print(){
-			return name+" ";
+			return name+"\t";
 		}
 		
 		protected static final int varScale = 0;
@@ -133,7 +152,7 @@ public class VariableSet {
 		}
 		
 		public String print(){
-			return name + "[] ";
+			return name + "[]\t";
 		}
 		
 		private Instruction curAddr;
@@ -155,10 +174,10 @@ public class VariableSet {
 			return param;
 		}
 		
-		public void setBlockId(int bId){
+		public void setBlock(ControlFlowGraph.Block bId){
 			blockId = bId;
 		}
-		public int getBlockId(){
+		public ControlFlowGraph.Block getBlock(){
 			return blockId;
 		}
 		
@@ -194,9 +213,9 @@ public class VariableSet {
 			return name + "() ";
 		}
 		
-		private HashSet<variable> usedGlobalVar;
-		private int blockId;//indicate the start block of the function
-		private ArrayList<variable> paramList;
+		private HashSet<variable> usedGlobalVar = new HashSet<variable>();
+		private ControlFlowGraph.Block blockId;//indicate the start block of the function
+		private ArrayList<variable> paramList = new ArrayList<variable>();
 		private boolean isReturn_ = false;
 		protected static final int varFunction = 4;
 	}
@@ -210,6 +229,9 @@ public class VariableSet {
 		}
 		
 		public void addChildScope(variableScope childScope){
+			if(this.childScope == null){
+				this.childScope = new ArrayList<variableScope>();
+			}
 			this.childScope.add(childScope);
 		}
 		
@@ -225,7 +247,9 @@ public class VariableSet {
 		private int level = 0;
 	}
 	
-
+	private static int 		OutputNum      =	300,
+							OutputNewLine  =	301,
+							InputNum		=	302;//x=InputNum();//OutPutNum(x)
 	
 	private static int variableCreated = 0;
 	private static int scopeCreated = 0;

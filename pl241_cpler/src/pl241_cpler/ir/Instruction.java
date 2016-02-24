@@ -6,15 +6,19 @@ public class Instruction implements Operand{
 		
 	public Instruction(int insType_, Operand o1, Operand o2){
 		ops = new ArrayList<Operand>();
+		insType = insType_;
 		ops.add(o1);
 		ops.add(o2);
+		this.locate = curLocate;
 	}
 	
 	public Instruction(int insType_, Operand o1, Operand o2, Operand o3){
 		ops = new ArrayList<Operand>();
+		insType = insType_;
 		ops.add(o1);
 		ops.add(o2);
 		ops.add(o3);
+		this.locate = curLocate;
 	}	
 	
 	public int getInsType(){
@@ -47,18 +51,30 @@ public class Instruction implements Operand{
 		locate = b;
 	}
 	
+	public static void setCurBlock(ControlFlowGraph.Block b){
+		curLocate = b;
+	}
+	
 	public ControlFlowGraph.Block getBlock(){
 		return locate;
 	}
 	
+	//set first parameter to be o, used for fix bra which used for if/while statement
 	public void fix(Operand o){
 		ops.set(1, o);
 	}
 	
 	public String print(){
 		String insprint = codeToName(insType);
+		insprint +=	"\t";
 		for(Operand o : ops){
-			insprint += o.print();
+			if(o != null)
+				if(o.getType() == opIns)
+					insprint += "(" + Integer.toString(((Instruction)o).getId())+ ") " +"\t";
+				else if(o.getType() == opFunc)
+					insprint += o.print() + "->" + ((VariableSet.function)o).getBlock().print();
+					else
+						insprint += o.print();
 		}
 		return insprint;
 	}
@@ -98,12 +114,14 @@ public class Instruction implements Operand{
 	private ArrayList<Operand> ops;
 	private ControlFlowGraph.Block locate;
 	
+	private static ControlFlowGraph.Block curLocate;
 	private int insType;
 	private boolean singleIns;
 	private int id = insCreated++;
 	private static int insCreated = 0;
 	
-	private static final int opIns = 2;
+	private static final int opIns = 2,
+							 opFunc	= 4;
 	private static final int irSimple = 0;
 	private static final int irSSA = 1;
 	
