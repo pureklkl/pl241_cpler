@@ -23,7 +23,7 @@ public class StaticSingleAssignment extends Instruction {
 	}
 	
 	private void addAssignmentForPhi(){
-		if((insType == store && ops.size() == 3) || (insType == load && ops.size() == 2) || insType == move ){
+		if(isDef(this)){
 			if(!phiRecord.isEmpty()){
 				for(HashSet<VariableSet.variable> vs : phiRecord){
 					vs.add((variable) ops.get(1));// we always move/store value to the 2nd operands
@@ -69,6 +69,40 @@ public class StaticSingleAssignment extends Instruction {
 		addAssignmentForPhi();
 	}	
 	
+	private static boolean isDef(Instruction i){
+		return (i.insType == store && i.ops.size() == 3) || i.insType == kill || i.insType == move;
+	}
+	
+	private static void processBlock(ControlFlowGraph.Block b){
+		LinkedList<Instruction> insList = b.getInsList();
+		for(Instruction i : insList){
+			
+		}
+	}
+	
+	private static void dfsT(dominatorTree.treeNode r){
+		visited.add(r);
+		
+		LinkedList<dominatorTree.treeNode> cList = r.getChild();
+		if(cList!=null){
+			for(dominatorTree.treeNode c : cList){
+				if(!visited.contains(c))
+					dfsT(c);
+			}
+		}
+	}
+	
+	public static void varRename(ControlFlowGraph cfg){
+		for(VariableSet.function f : cfg.getFuncSet().keySet()){
+			System.out.println(f.print()+" : ");
+			dominatorTree t = new dominatorTree(cfg.getFuncSet().get(f));
+			visited.clear();
+			dfsT(t.getTreeRoot());
+		}
+	}
+	
+	private static HashSet<dominatorTree.treeNode> visited = new HashSet<dominatorTree.treeNode>();
+	
 	private LinkedList<Instruction> version = new LinkedList<Instruction>();;
 	private static Stack<HashSet<VariableSet.variable>> phiRecord = new Stack<HashSet<VariableSet.variable>>();
 
@@ -76,7 +110,6 @@ public class StaticSingleAssignment extends Instruction {
 							 opScale =  0,
 							 opArray = 	1;
 	private static final int whileRoute = 3;
-	private static final int oldKill	=-3,
-							 kill 		= -2;
+	private static final int kill 		= -2;
 	private static final int callerFunc		=	500;
 }

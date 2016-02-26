@@ -36,11 +36,19 @@ public class ControlFlowGraph {
 			return equalNum;
 		}
 		
+		public LinkedList<Block> getSuccessor(){
+			return down;
+		}
+		
+		public LinkedList<Instruction> getInsList(){
+			return insList;
+		}
+		
 		private Block loopEnd = null;
 		private Block loopHead = null;
-		private ArrayList<Block> up	= null;
-		private ArrayList<Block> down = null;
-		private ArrayList<Instruction> insList = new ArrayList<Instruction>();
+		private LinkedList<Block> up	= null;
+		private LinkedList<Block> down = null;
+		private LinkedList<Instruction> insList = new LinkedList<Instruction>();
 		private int id = blockCreated++;
 		private VariableSet curVarSet;
 		private final static int opBlock = 5;
@@ -72,10 +80,10 @@ public class ControlFlowGraph {
 */	
 	private void linkSeqBlock(Block upB, Block downB){
 		if(upB.down == null){
-			upB.down = new ArrayList<Block>();
+			upB.down = new LinkedList<Block>();
 		}
 		if(downB.up == null){
-			downB.up = new ArrayList<Block>();
+			downB.up = new LinkedList<Block>();
 		}
 		upB.down.add(downB);
 		downB.up.add(upB);
@@ -160,6 +168,10 @@ public class ControlFlowGraph {
 	
 	public void popCurRoute(){
 		curRoute.pop();
+	}
+	
+	public HashMap<VariableSet.function, LinkedList<Block>> getFuncSet(){
+		return funcSet;
 	}
 	
 	private void printBlock(Block b){

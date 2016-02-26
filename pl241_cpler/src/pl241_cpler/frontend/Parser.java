@@ -44,7 +44,7 @@ public class Parser {
 	private ControlFlowGraph cfg;
 	private VariableSet varSet;
 	
-	Parser(String filePath){
+	public Parser(String filePath){
 		s = new Scanner(filePath);
 		cfg = new ControlFlowGraph();
 		varSet = new VariableSet();
@@ -271,8 +271,8 @@ public class Parser {
 			cfg.addInsToCurBlock(Instruction.genIns(bra, null, func));
 			cfg.addAndMoveToNextBlock();
 			for(VariableSet.variable i : varSet.getGlobalVar().values()){
-				if(i.getType() == opScale){
-					cfg.addInsToCurBlock(Instruction.genIns(load, null, i));
+				if(i.getType() == opScale || i.getType() == opArray){
+					cfg.addInsToCurBlock(Instruction.genIns(kill, null, i));
 				}
 			}
 			if(func.getReturnState()){
@@ -716,6 +716,7 @@ public class Parser {
 	
 	//instruction code
 	public static final int
+						kill			=	-2,
 						decl			=	-1,
 						neg				= 	0,
 						add				=	11,

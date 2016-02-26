@@ -6,34 +6,43 @@ import java.util.Stack;
 public class DefUseChain {
 	
 	class chainNode{
+		public chainNode(Instruction def){
+			defIns = def;
+		}
+		public void addUse(Instruction use){
+			usedIns.add(use);
+		}
 		Instruction defIns;
-		LinkedList<Instruction> usedIns;
-		LinkedList<Instruction> nextDef;
-		LinkedList<Instruction> prevDef;//only phi ins has multiple defs for same var
+		LinkedList<Instruction> usedIns = new LinkedList<Instruction>();
 	}
 
-	Stack<Instruction> stackedDef;
+	Stack<Instruction> stackedDef = new Stack<Instruction>();
 	Stack<chainNode> defchain = new Stack<chainNode>();
 	
 	public DefUseChain(){
-		duHead = new chainNode();
-		duHead.defIns = Instruction.genIns(decl, null, null);
-		defchain.push(duHead);
 	}
 	
-	public void addDef(){
-		
+	public void pushDefStack(){
+		stackedDef.push(null);
 	}
-	
-	public void addUse(){
-		
+	public void popDefStack(){
+		stackedDef.pop();
+	}
+	public void addDef(Instruction def){
+		defchain.push(new chainNode(def));
+		stackedDef.set(stackedDef.size()-1, def);
 	}
 	
 	public Instruction getDef(){
-		return defchain.peek().defIns;
+		Instruction res = null;
+		for(int i = stackedDef.size()-1; i>=0; i--){
+			res = stackedDef.get(i);
+			if(res != null){
+				break;
+			}
+		}
+		return res;
 	}
-	
-	chainNode duHead;
 	
 	public static final int decl = -1; 
 }
