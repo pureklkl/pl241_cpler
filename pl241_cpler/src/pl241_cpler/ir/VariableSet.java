@@ -2,6 +2,7 @@ package pl241_cpler.ir;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Stack;
 
 import pl241_cpler.ir.VariableSet.function;
 
@@ -10,24 +11,31 @@ import java.util.ArrayList;
 public class VariableSet {
 	
 	private variableScope curScope = null;
+	private variableScope globalScope = null;
 	
 	public VariableSet(){
 		curScope = new variableScope(null);
+		globalScope = curScope;
 		addPredefFunc("OutputNum", 1, OutputNum);
 		addPredefFunc("OutputNewLine", 0, OutputNewLine);
 		addPredefFunc("OutputNewLine", 0, InputNum);
+		addPredefFunc("&callerFunc&", 0, callerFunc);
 	}
 	
 	private void addPredefFunc(String name, int varnum, int id){
 		VariableSet.function func = new function();
-		func.setName(name);
+		func.setName(name, id);
 		add(id, func);
 		addAndMoveToNewScope();
 		for(int i = 0; i < varnum; i++){
-			func.addParam(new scale()).setName("v"+Integer.toString(i));
+			func.addParam(new scale()).setName("v"+Integer.toString(i), -1);
 		}
 		returnToParentScope();
 		
+	}
+	
+	public HashMap<Integer, variable> getGlobalVar(){
+		return globalScope.varSet;
 	}
 	
 	//???? make sure the variable id
@@ -77,24 +85,26 @@ public class VariableSet {
 		
 		public abstract int getType();
 		
-		public void setName(String str){
+		public void setName(String str , int identId_){
 			name = str;
+			identId = identId_;
 		}
 		
 		public int getScopeLevel(){
 			return locate.level;
 		}
 		
-		public Instruction getDef(){
-			return du.getDef();
+		public DefUseChain getDU(){
+			return du;
 		}
 		
 		public int getIdentId(){
-			return 0;
+			return identId;
 		}
 		
-		public abstract variable addNew(String addName);
+		public abstract variable addNew(String addName, int id);
 		
+		private int identId;
 		private DefUseChain du = new DefUseChain();
 		private variableScope locate;
 		private int id = variableCreated++;
@@ -111,14 +121,14 @@ public class VariableSet {
 			return varScale;
 		}
 		
-		public scale addNew(String addName){
+		public scale addNew(String addName, int id){
 			scale tmp = new scale();
-			tmp.setName(addName);
+			tmp.setName(addName, id);
 			return tmp;
 		}
 		
 		public String print(){
-			return name+"\t";
+			return name;
 		}
 		
 		protected static final int varScale = 0;
@@ -141,9 +151,9 @@ public class VariableSet {
 			return dims;
 		}
 		
-		public array addNew(String addName){
+		public array addNew(String addName, int id){
 			array tmp = new array(dims);
-			tmp.setName(addName);
+			tmp.setName(addName, id);
 			return tmp;
 		}
 		
@@ -156,7 +166,7 @@ public class VariableSet {
 		}
 		
 		public String print(){
-			return name + "[]\t";
+			return name + "[]";
 		}
 		
 		private Instruction curAddr;
@@ -167,7 +177,7 @@ public class VariableSet {
 	public class function extends variable{
 		
 		
-		public function addNew(String addName){
+		public function addNew(String addName, int id){
 			return null;
 		}
 		public int getType(){
@@ -251,8 +261,8 @@ public class VariableSet {
 		private int level = 0;
 	}
 	
-	private static int 		OutputNum      =	300,
-							OutputNewLine  =	301,
+	private static int 		OutputNum		=	300,
+							OutputNewLine	=	301,
 							InputNum		=	302,//x=InputNum();//OutPutNum(x)
 							callerFunc		=	500;
 	

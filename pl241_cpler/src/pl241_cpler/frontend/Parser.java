@@ -387,7 +387,7 @@ public class Parser {
 			if(token == beginToken){
 				varSet.addAndMoveToNewScope();
 				VariableSet.function func = varSet.new function();
-				func.setName("main");
+				func.setName("main", id);
 				cfg.resetCurRoute();
 				cfg.addNewFuncBlock(func);
 				next();
@@ -459,7 +459,7 @@ public class Parser {
 		VariableSet.variable varType = typeDecl();
 		if(token == ident){
 			
-			varType.setName(str);
+			varType.setName(str, id);
 			if(!varSet.add(id, varType)){
 				showError("Variable redefined, decleration fail!");
 			}
@@ -468,7 +468,7 @@ public class Parser {
 			while(token == commaToken){
 				next();
 				if(token == ident){
-					if(!varSet.add(id, varType.addNew(str))){
+					if(!varSet.add(id, varType.addNew(str, id))){
 						showError("Variable redefined, decleration fail!");
 					}
 					
@@ -511,7 +511,7 @@ public class Parser {
 		next();
 		if(token == ident){
 			VariableSet.scale param = varSet.new scale();
-			param.setName(str);
+			param.setName(str, id);
 			if(varSet.add(id, param)){
 				func.addParam(param);
 			}else{
@@ -521,7 +521,7 @@ public class Parser {
 			while(token == commaToken){
 				next();
 				if(token == ident){
-					VariableSet.scale moreParam = param.addNew(str);
+					VariableSet.scale moreParam = param.addNew(str, id);
 					if(varSet.add(id, moreParam)){
 						func.addParam(moreParam);
 					}
@@ -549,7 +549,7 @@ public class Parser {
 			if(!varSet.add(id, func)){
 				showError("Function redefined, decleration fail!");
 			}
-			func.setName(str);
+			func.setName(str, id);
 			cfg.resetCurRoute();
 			cfg.addNewFuncBlock(func);
 			varSet.addAndMoveToNewScope();
