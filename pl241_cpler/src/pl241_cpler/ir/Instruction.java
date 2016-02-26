@@ -11,7 +11,7 @@ public class Instruction implements Operand{
 		ops.add(o2);
 		this.locate = curLocate;
 	}
-	
+	//record value, address, variable name for array - the only three operands instruction
 	public Instruction(int insType_, Operand o1, Operand o2, Operand o3){
 		ops = new ArrayList<Operand>();
 		insType = insType_;
@@ -31,6 +31,14 @@ public class Instruction implements Operand{
 	
 	public int getId(){
 		return id;
+	}
+	
+	public static void genSSA(){
+		irType = irSSA;
+	}
+	
+	public static void genSimple(){
+		irType = irSimple;
 	}
 	
 	public static Instruction genIns(int insType_, Operand o1, Operand o2){
@@ -55,6 +63,10 @@ public class Instruction implements Operand{
 		curLocate = b;
 	}
 	
+	public static void setVarSet(VariableSet varSet_){
+		varSet = varSet_;
+	}
+	
 	public ControlFlowGraph.Block getBlock(){
 		return locate;
 	}
@@ -71,10 +83,15 @@ public class Instruction implements Operand{
 			if(o != null)
 				if(o.getType() == opIns)
 					insprint += "(" + Integer.toString(((Instruction)o).getId())+ ") " +"\t";
-				else if(o.getType() == opFunc)
-					insprint += o.print() + "->" + ((VariableSet.function)o).getBlock().print();
+				else if(o.getType() == opFunc){
+					insprint += o.print();
+					if(((VariableSet.function)o).getIdentId()==callerFunc)
+						insprint += "-> return";
 					else
-						insprint += o.print();
+						insprint += "->" + ((VariableSet.function)o).getBlock().print();
+					}
+				else
+					insprint += o.print()+"\t";
 		}
 		return insprint;
 	}
@@ -111,17 +128,18 @@ public class Instruction implements Operand{
 		}
 	}
 	
-	private ArrayList<Operand> ops;
-	private ControlFlowGraph.Block locate;
+	protected ArrayList<Operand> ops;
+	protected ControlFlowGraph.Block locate;
 	
-	private static ControlFlowGraph.Block curLocate;
-	private int insType;
-	private boolean singleIns;
-	private int id = insCreated++;
-	private static int insCreated = 0;
+	protected static ControlFlowGraph.Block curLocate;
+	protected int insType;
+	protected boolean singleIns;
+	protected int id = insCreated++;
+	protected static int insCreated = 0;
+	protected static VariableSet varSet;
 	
-	private static final int opIns = 2,
-							 opFunc	= 4;
+	protected static final int opIns = 2,
+							   opFunc	= 4;
 	private static final int irSimple = 0;
 	private static final int irSSA = 1;
 	
@@ -153,4 +171,10 @@ public class Instruction implements Operand{
 	read			=	30,
 	write			=	31,
 	writeNL			=	32;
+	protected static final int 	defaultFuncMin	=	255,
+								defaultFuncMax	=	1024,
+								OutputNum      	=	300,
+								OutputNewLine 	= 	301,//OutPutNum(x)
+								InputNum		=	302,//x=InputNum()
+								callerFunc		=	500;
 }

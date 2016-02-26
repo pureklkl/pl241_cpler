@@ -48,6 +48,7 @@ public class Parser {
 		s = new Scanner(filePath);
 		cfg = new ControlFlowGraph();
 		varSet = new VariableSet();
+		Instruction.setVarSet(varSet);
 	}
 	
 	private void next(){
@@ -176,6 +177,7 @@ public class Parser {
 	}
 	
 	//assignment = “let” designator “<-” expression.
+	//record value, address, variable name for array - the only three operands instruction
 	//???? is global should be stored or use just move - now just move
 	private void assignment(){
 		next();
@@ -185,7 +187,7 @@ public class Parser {
 			next();
 			Operand value = expression();
 			if(target.getType() == opArray){
-				cfg.addInsToCurBlock(Instruction.genIns(store, value, ((VariableSet.array)target).getAddr(), target));
+				cfg.addInsToCurBlock(Instruction.genIns(store, value, target, ((VariableSet.array)target).getAddr()));
 			}else{
 				cfg.addInsToCurBlock(Instruction.genIns(move, value, target));
 				if(((VariableSet.scale)target).getScopeLevel() == global)
@@ -262,15 +264,15 @@ public class Parser {
 					return returnVal;
 			}
 			
+			//store global parameter here
 			HashSet<VariableSet.variable> usedGV = cfg.curFunc().getUsedGV();
 			for(VariableSet.variable i : usedGV){
 				//???? optimize here cancel stored var
 				cfg.addInsToCurBlock(Instruction.genIns(store, i, null));
 			}
-			
-			//store global parameter here
 			cfg.addInsToCurBlock(Instruction.genIns(bra, null, func));
 			cfg.addAndMoveToNextBlock();
+			StaticSingleAssignment.addKillForGlobalVariable(cfg);
 			if(func.getReturnState()){
 				returnVal = Instruction.genIns(load, func, null);
 				cfg.addInsToCurBlock((Instruction)returnVal);
@@ -290,6 +292,7 @@ public class Parser {
 		if(token == thenToken){
 			cfg.pushCurRoute(ifRoute);
 			cfg.addAndMoveToNextBlock();
+			StaticSingleAssignment.pushNewPhiBlock();
 			next();
 			stateSequence();
 			if(token == elseToken){
@@ -303,6 +306,7 @@ public class Parser {
 			if(token == fiToken){
 				cfg.popCurRoute();
 				cfg.addAndMoveToNextBlock();
+				StaticSingleAssignment.popPhiToCurBlock(cfg);
 				cfg.fix();
 				next();
 				//push phi function here
@@ -317,16 +321,19 @@ public class Parser {
 	//whileStatement = “while” relation “do” StatSequence “od”.
 	private void whileStatement(){
 		next();
+		cfg.pushCurRoute(whileRoute);
+		StaticSingleAssignment.pushNewWhileBlock();
 		cfg.addAndMoveToNextBlock();
 		relation();
 		if(token == doToken){
 			cfg.pushCurBlock();
-			cfg.pushCurRoute(whileRoute);
 			cfg.addAndMoveToNextBlock();
+			StaticSingleAssignment.pushNewPhiBlock();
 			next();
 			stateSequence();
-			cfg.loopBack();//add bra at the end of loop and link back to while
+			cfg.loopBack();//add bra at the end of loop and link back to while, change current block to the loop head
 			//push phi function here
+			StaticSingleAssignment.popPhiToCurBlock(cfg);
 			if(token == odToken){
 				cfg.popCurRoute();
 				cfg.addAndMoveToNextBlock();
@@ -346,7 +353,7 @@ public class Parser {
 		Operand value = expression();
 		cfg.addInsToCurBlock(Instruction.genIns(store, value, cfg.curFunc()));
 		//means function return - addr will be determined when code generation
-		cfg.addInsToCurBlock(Instruction.genIns(bra, null, null));
+		cfg.addInsToCurBlock(Instruction.genIns(bra, null, varSet.retrieval(callerFunc)));
 	}
 	
 	//statement = assignment | funcCall | ifStatement | whileStatement | returnStatement.
@@ -387,7 +394,7 @@ public class Parser {
 			if(token == beginToken){
 				varSet.addAndMoveToNewScope();
 				VariableSet.function func = varSet.new function();
-				func.setName("main");
+				func.setName("main", mainToken);
 				cfg.resetCurRoute();
 				cfg.addNewFuncBlock(func);
 				next();
@@ -459,7 +466,7 @@ public class Parser {
 		VariableSet.variable varType = typeDecl();
 		if(token == ident){
 			
-			varType.setName(str);
+			varType.setName(str, id);
 			if(!varSet.add(id, varType)){
 				showError("Variable redefined, decleration fail!");
 			}
@@ -468,7 +475,7 @@ public class Parser {
 			while(token == commaToken){
 				next();
 				if(token == ident){
-					if(!varSet.add(id, varType.addNew(str))){
+					if(!varSet.add(id, varType.addNew(str, id))){
 						showError("Variable redefined, decleration fail!");
 					}
 					
@@ -511,7 +518,7 @@ public class Parser {
 		next();
 		if(token == ident){
 			VariableSet.scale param = varSet.new scale();
-			param.setName(str);
+			param.setName(str, id);
 			if(varSet.add(id, param)){
 				func.addParam(param);
 			}else{
@@ -521,7 +528,7 @@ public class Parser {
 			while(token == commaToken){
 				next();
 				if(token == ident){
-					VariableSet.scale moreParam = param.addNew(str);
+					VariableSet.scale moreParam = param.addNew(str, id);
 					if(varSet.add(id, moreParam)){
 						func.addParam(moreParam);
 					}
@@ -549,7 +556,7 @@ public class Parser {
 			if(!varSet.add(id, func)){
 				showError("Function redefined, decleration fail!");
 			}
-			func.setName(str);
+			func.setName(str, id);
 			cfg.resetCurRoute();
 			cfg.addNewFuncBlock(func);
 			varSet.addAndMoveToNewScope();
@@ -598,6 +605,7 @@ public class Parser {
 			}else{
 				if(prevAddr != null){
 					Instruction lastDim = Instruction.genIns(add, prevAddr, d);
+					cfg.addInsToCurBlock(lastDim);
 					resAddr = Instruction.genIns(adda, lastDim, a);
 				}else{
 					resAddr = Instruction.genIns(adda, d, a);
@@ -633,6 +641,7 @@ public class Parser {
 	}
 	
 	public static void main(String[] args){
+		Instruction.genSSA();
 		Parser p = new Parser(args[0]);
 		p.startParse();
 		p.getCFG().print();
@@ -715,12 +724,12 @@ public class Parser {
 						cmp				=	5,
 
 						adda			=	40,
-						load			=	41,
-						store			=	42,
+						load			=	41, //load function means get return value
+						store			=	42, //store a -> b means transmit parameters
 						move			=	43,
 						phi				=	44,
 						end				=	45,
-						bra				=	46,
+						bra				=	46,	//bra wit null means return
 						
 						bne				=	20,
 						beq				=	21,
@@ -737,7 +746,8 @@ public class Parser {
 						defaultFuncMax	=	1024,
 						OutputNum      	=	300,
 						OutputNewLine 	= 	301,//OutPutNum(x)
-						InputNum		=	302;//x=InputNum()
+						InputNum		=	302,//x=InputNum()
+						callerFunc		=	500;
 	
 	static final int normalRoute 	= 0,
 			 		 ifRoute		= 1,
