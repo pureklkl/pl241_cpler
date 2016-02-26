@@ -85,6 +85,7 @@ public class Instruction implements Operand{
 	
 	public String codeToName(int insCode){
 		switch(insCode){
+		case 	kill	:   return new String("kill");
 		case	decl	:	return new String("decl ");
 		case	neg		:	return new String("neg ");
 		case	add		:	return new String("add ");
@@ -131,6 +132,7 @@ public class Instruction implements Operand{
 	
 	protected static int irType = irSimple;
 	protected static final int
+	kill			=	-2,
 	decl			=	-1,
 	neg				= 	0,
 	add				=	11,

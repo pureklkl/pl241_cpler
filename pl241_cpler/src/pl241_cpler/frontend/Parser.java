@@ -185,7 +185,7 @@ public class Parser {
 			next();
 			Operand value = expression();
 			if(target.getType() == opArray){
-				cfg.addInsToCurBlock(Instruction.genIns(store, value, ((VariableSet.array)target).getAddr(), target));
+				cfg.addInsToCurBlock(Instruction.genIns(store, value,  target, ((VariableSet.array)target).getAddr()));
 			}else{
 				cfg.addInsToCurBlock(Instruction.genIns(move, value, target));
 				if(((VariableSet.scale)target).getScopeLevel() == global)
@@ -239,12 +239,12 @@ public class Parser {
 												index++;break;
 						}
 					}else{
-						cfg.addInsToCurBlock(Instruction.genIns(store, var, func.getParam(index++)));
+						cfg.addInsToCurBlock(Instruction.genIns(store, var, new Parameter(func, index++)));
 					}
 					while(token == commaToken){
 						next();
 						var = expression();
-						cfg.addInsToCurBlock(Instruction.genIns(store, var, func.getParam(index++)));
+						cfg.addInsToCurBlock(Instruction.genIns(store, var, new Parameter(func, index++)));
 					}
 				}
 				if(token == closeparenToken){
@@ -585,7 +585,7 @@ public class Parser {
 	}
 	
 	private void endCFG(){
-		
+		StaticSingleAssignment.varRename(cfg);
 	}
 	
 	private Instruction calArrayLocate(VariableSet.array a, ArrayList<Operand> dimList){
@@ -712,7 +712,8 @@ public class Parser {
 						opIns			=	2,
 						opConstant		=	3,
 						opFunc			=	4,
-						opBlock			=	5;
+						opBlock			=	5,
+						opParam			=	6;
 	
 	//instruction code
 	public static final int

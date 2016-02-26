@@ -124,6 +124,7 @@ public class ControlFlowGraph {
 		Block loopHead = stackedBlock.pop();
 		loopHead.loopEnd = curBlock;
 		curBlock.loopHead = loopHead;
+		linkSeqBlock(curBlock, loopHead);
 		curBlock.addIns(Instruction.genIns(bra, null, loopHead));
 		curBlock = loopHead;
 	}

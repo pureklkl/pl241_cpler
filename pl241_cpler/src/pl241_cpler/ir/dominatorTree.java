@@ -154,6 +154,10 @@ public class dominatorTree {
 		return root;
 	}
 	
+	public HashMap<Block, HashSet<Block>> getRDSet(){
+		return rdoSet;
+	}
+	
 	private treeNode root;
 	private LinkedList<treeNode> nodeList = new LinkedList<treeNode>();
 	private HashMap<Block, HashSet<Block>> rdoSet =  new HashMap<Block, HashSet<Block>>();
