@@ -262,15 +262,19 @@ public class Parser {
 					return returnVal;
 			}
 			
+			//store global parameter here
 			HashSet<VariableSet.variable> usedGV = cfg.curFunc().getUsedGV();
 			for(VariableSet.variable i : usedGV){
 				//???? optimize here cancel stored var
 				cfg.addInsToCurBlock(Instruction.genIns(store, i, null));
 			}
-			
-			//store global parameter here
 			cfg.addInsToCurBlock(Instruction.genIns(bra, null, func));
 			cfg.addAndMoveToNextBlock();
+			for(VariableSet.variable i : varSet.getGlobalVar().values()){
+				if(i.getType() == opScale){
+					cfg.addInsToCurBlock(Instruction.genIns(load, null, i));
+				}
+			}
 			if(func.getReturnState()){
 				returnVal = Instruction.genIns(load, func, null);
 				cfg.addInsToCurBlock((Instruction)returnVal);

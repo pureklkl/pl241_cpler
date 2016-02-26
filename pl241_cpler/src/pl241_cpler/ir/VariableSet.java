@@ -224,7 +224,7 @@ public class VariableSet {
 		}
 		
 		public String print(){
-			return name + "() ";
+			return name + "()";
 		}
 		
 		private HashSet<variable> usedGlobalVar = new HashSet<variable>();

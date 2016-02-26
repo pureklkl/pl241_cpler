@@ -16,6 +16,10 @@ public class ControlFlowGraph {
 			insList.add(ins);
 		}
 		
+		void addInsToHead(Instruction ins){
+			insList.add(0, ins);
+		}
+		
 		@Override
 		public int getType() {
 			// TODO Auto-generated method stub
@@ -131,6 +135,11 @@ public class ControlFlowGraph {
 		ins.setBlock(curBlock);
 	}
 	
+	public void addInsToCurBlockHead(Instruction ins) {
+		curBlock.addInsToHead(ins);
+		ins.setBlock(curBlock);
+	}
+	
 	public VariableSet.function curFunc(){
 		return curFunc;
 	}
@@ -203,9 +212,6 @@ public class ControlFlowGraph {
 					 elseRoute		= 2,
 					 whileRoute		= 3;
 
-	public void addInsToCurBlockHead(Instruction genIns) {
-		
-		
-	}
+
 	
 }

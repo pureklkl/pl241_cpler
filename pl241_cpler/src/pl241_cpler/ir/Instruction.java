@@ -74,7 +74,7 @@ public class Instruction implements Operand{
 				else if(o.getType() == opFunc)
 					insprint += o.print() + "->" + ((VariableSet.function)o).getBlock().print();
 					else
-						insprint += o.print();
+						insprint += o.print()+"\t";
 		}
 		return insprint;
 	}

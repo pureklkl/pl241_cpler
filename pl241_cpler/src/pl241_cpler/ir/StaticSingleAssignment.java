@@ -24,7 +24,7 @@ public class StaticSingleAssignment extends Instruction {
 	}
 	
 	private void addAssignmentForPhi(){
-		if((insType == store && ops.size() == 3) || insType == move){
+		if((insType == store && ops.size() == 3) || (insType == load && ops.size() == 2) || insType == move ){
 			if(!phiRecord.isEmpty()){
 				for(HashSet<VariableSet.variable> vs : phiRecord){
 					vs.add((variable) ops.get(1));// we always move/store value to the 2nd operands
@@ -32,7 +32,7 @@ public class StaticSingleAssignment extends Instruction {
 			}
 		}
 	}
-	
+	/**
 	public String print(){
 		String insprint = codeToName(insType);
 		insprint +=	"\t";
@@ -54,27 +54,20 @@ public class StaticSingleAssignment extends Instruction {
 		}
 		return insprint;
 	}
-	
+	*/
 	public StaticSingleAssignment(int insType_, Operand o1, Operand o2){
 		super(insType_, o1, o2);
 		version.add(null);
 		version.add(null);
 		addAssignmentForPhi();
 	}
-	//only for store/load array
+
 	public StaticSingleAssignment(int insType_, Operand o1, Operand o2, Operand o3){
 		super(insType_, o1, o2, o3);
 		version.add(null);
 		version.add(null);
 		version.add(null);
 		addAssignmentForPhi();
-	}
-	private StaticSingleAssignment(Operand o1){
-		super(load, null, o1);
-		version.add(null);
-		version.add(null);
-		version.add(null);
-		version.set(1, this);
 	}	
 	
 	private LinkedList<Instruction> version = new LinkedList<Instruction>();;
