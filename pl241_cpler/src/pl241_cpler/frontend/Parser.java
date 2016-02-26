@@ -598,6 +598,7 @@ public class Parser {
 			}else{
 				if(prevAddr != null){
 					Instruction lastDim = Instruction.genIns(add, prevAddr, d);
+					cfg.addInsToCurBlock(lastDim);
 					resAddr = Instruction.genIns(adda, lastDim, a);
 				}else{
 					resAddr = Instruction.genIns(adda, d, a);
