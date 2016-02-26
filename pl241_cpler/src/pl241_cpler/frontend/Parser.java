@@ -293,6 +293,7 @@ public class Parser {
 		relation();
 		if(token == thenToken){
 			cfg.pushCurRoute(ifRoute);
+			StaticSingleAssignment.pushNewPhiBlock();
 			cfg.addAndMoveToNextBlock();
 			next();
 			stateSequence();
@@ -307,6 +308,7 @@ public class Parser {
 			if(token == fiToken){
 				cfg.popCurRoute();
 				cfg.addAndMoveToNextBlock();
+				StaticSingleAssignment.popPhiToCurBlock(cfg);
 				cfg.fix();
 				next();
 				//push phi function here
@@ -327,10 +329,12 @@ public class Parser {
 			cfg.pushCurBlock();
 			cfg.pushCurRoute(whileRoute);
 			cfg.addAndMoveToNextBlock();
+			StaticSingleAssignment.pushNewPhiBlock();
 			next();
 			stateSequence();
 			cfg.loopBack();//add bra at the end of loop and link back to while
 			//push phi function here
+			StaticSingleAssignment.popPhiToCurBlock(cfg);
 			if(token == odToken){
 				cfg.popCurRoute();
 				cfg.addAndMoveToNextBlock();
