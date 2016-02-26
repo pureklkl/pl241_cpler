@@ -202,5 +202,10 @@ public class ControlFlowGraph {
 					 ifRoute		= 1,
 					 elseRoute		= 2,
 					 whileRoute		= 3;
+
+	public void addInsToCurBlockHead(Instruction genIns) {
+		
+		
+	}
 	
 }

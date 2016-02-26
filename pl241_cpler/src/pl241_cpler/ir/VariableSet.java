@@ -89,6 +89,10 @@ public class VariableSet {
 			return du.getDef();
 		}
 		
+		public int getIdentId(){
+			return 0;
+		}
+		
 		public abstract variable addNew(String addName);
 		
 		private DefUseChain du = new DefUseChain();
@@ -249,7 +253,8 @@ public class VariableSet {
 	
 	private static int 		OutputNum      =	300,
 							OutputNewLine  =	301,
-							InputNum		=	302;//x=InputNum();//OutPutNum(x)
+							InputNum		=	302,//x=InputNum();//OutPutNum(x)
+							callerFunc		=	500;
 	
 	private static int variableCreated = 0;
 	private static int scopeCreated = 0;

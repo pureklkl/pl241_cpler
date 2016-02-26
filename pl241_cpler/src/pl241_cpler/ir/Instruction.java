@@ -111,22 +111,22 @@ public class Instruction implements Operand{
 		}
 	}
 	
-	private ArrayList<Operand> ops;
-	private ControlFlowGraph.Block locate;
+	protected ArrayList<Operand> ops;
+	protected ControlFlowGraph.Block locate;
 	
-	private static ControlFlowGraph.Block curLocate;
-	private int insType;
-	private boolean singleIns;
-	private int id = insCreated++;
+	protected static ControlFlowGraph.Block curLocate;
+	protected int insType;
+	protected boolean singleIns;
+	protected int id = insCreated++;
 	private static int insCreated = 0;
 	
-	private static final int opIns = 2,
-							 opFunc	= 4;
+	protected static final int opIns = 2,
+							   opFunc	= 4;
 	private static final int irSimple = 0;
 	private static final int irSSA = 1;
 	
-	private static int irType = irSimple;
-	public static final int
+	protected static int irType = irSimple;
+	protected static final int
 	decl			=	-1,
 	neg				= 	0,
 	add				=	11,
