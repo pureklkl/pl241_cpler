@@ -642,6 +642,7 @@ public class Parser {
 	}
 	
 	public static void main(String[] args){
+		Instruction.genSSA();
 		Parser p = new Parser(args[0]);
 		p.startParse();
 		p.getCFG().print();

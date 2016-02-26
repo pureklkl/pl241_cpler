@@ -33,6 +33,10 @@ public class Instruction implements Operand{
 		return id;
 	}
 	
+	public static void genSSA(){
+		irType = irSSA;
+	}
+	
 	public static Instruction genIns(int insType_, Operand o1, Operand o2){
 		if(irType == irSimple){
 			return new Instruction(insType_, o1, o2);

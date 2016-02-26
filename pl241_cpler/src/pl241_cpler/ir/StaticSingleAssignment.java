@@ -5,7 +5,6 @@ import java.util.Stack;
 
 import pl241_cpler.ir.VariableSet.variable;
 
-import java.util.HashMap;
 import java.util.HashSet;
 
 public class StaticSingleAssignment extends Instruction {
