@@ -18,7 +18,7 @@ public class Parameter implements Operand {
 	@Override
 	public String print() {
 		// TODO Auto-generated method stub
-		return new String(func_.print()+": par "+Integer.toBinaryString(index_));
+		return new String(func_.print()+": par "+Integer.toString(index_));
 	}
 
 	private function func_;

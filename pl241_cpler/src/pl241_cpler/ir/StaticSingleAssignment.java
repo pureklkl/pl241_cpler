@@ -50,7 +50,7 @@ public class StaticSingleAssignment extends Instruction {
 					else
 						insprint += "->" + ((VariableSet.function)o).getBlock().print();
 				}else if(o.getType()<=opArray&&version.get(i)!=null)
-					insprint += o.print()+"&"+Integer.toString(version.get(i).id)+"\t";
+					insprint += o.print()+"_"+Integer.toString(version.get(i).id)+"\t";
 				else
 					insprint += o.print()+"\t";
 		}
@@ -89,6 +89,7 @@ public class StaticSingleAssignment extends Instruction {
 			loadSlot.addInsToHead(initialLoad);
 			initialLoad.setBlock(loadSlot);
 			odu.addDef(initialLoad, rdoSet);
+			((StaticSingleAssignment)initialLoad).version.set(1, initialLoad);
 			def = odu.getDef(locate, rdoSet);
 		}
 		if(def == null){

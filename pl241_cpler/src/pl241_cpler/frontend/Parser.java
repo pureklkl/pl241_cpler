@@ -536,7 +536,7 @@ public class Parser {
 					else{
 						showError("Param redefined, Func decleration fail!");
 					}
-					
+					next();
 				}else{
 					showError("Expected Identifier");
 				}
