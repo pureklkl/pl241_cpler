@@ -175,6 +175,14 @@ public class ControlFlowGraph {
 		return funcSet;
 	}
 	
+	public void putFuncDTree(VariableSet.function func, dominatorTree t){
+		funcSetT.put(func, t);
+	}
+	
+	public HashMap<VariableSet.function, dominatorTree> getFuncDTree(){
+		return funcSetT;
+	}
+	
 	private void printBlock(Block b){
 		System.out.print("Route :");
 		for(Integer i : b.ifElseRoute){
@@ -215,6 +223,7 @@ public class ControlFlowGraph {
 	Stack<Block> stackedBlock = new Stack<Block>();
 	Stack<Instruction> stackedIns = new Stack<Instruction>();
 	
+	private HashMap<VariableSet.function, dominatorTree> funcSetT = new HashMap<VariableSet.function, dominatorTree>();
 	private HashMap<VariableSet.function, LinkedList<Block>> funcSet = new HashMap<VariableSet.function, LinkedList<Block>>();
 	private HashMap<VariableSet.function, LinkedList<Block>> preDeffuncSet = new HashMap<VariableSet.function, LinkedList<Block>>();
 	static private int blockCreated = 0;

@@ -9,7 +9,7 @@ import pl241_cpler.ir.ControlFlowGraph.Block;
 
 public class DefUseChain {
 	
-	class chainNode{
+	public class chainNode{
 		public chainNode(Instruction def){
 			defIns = def;
 		}
@@ -19,12 +19,21 @@ public class DefUseChain {
 		public Instruction getIns(){
 			return defIns;
 		}
+		
+		public LinkedList<Instruction> getUsedIns(){
+			return usedIns;
+		}
+		
 		Instruction defIns;
 		LinkedList<Instruction> usedIns = new LinkedList<Instruction>();
 	}
 
 	Stack<chainNode> stackedDef = new Stack<chainNode>();
 	Stack<chainNode> defchain = new Stack<chainNode>();
+	
+	public Stack<chainNode> getDefChian(){
+		return defchain;
+	}
 	
 	public DefUseChain(){
 		defchain.push(new chainNode(Instruction.genIns(decl, null, null)));

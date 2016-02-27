@@ -2,6 +2,7 @@ package pl241_cpler.frontend;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 
 import pl241_cpler.ir.*;
 import pl241_cpler.ir.VariableSet.variable;
@@ -641,11 +642,31 @@ public class Parser {
 		return cfg;
 	}
 	
+	public VariableSet getVarSet(){
+		return varSet;
+	}
+	
 	public static void main(String[] args){
 		Instruction.genSSA();
 		Parser p = new Parser(args[0]);
 		p.startParse();
 		p.getCFG().print();
+		for(Map.Entry<VariableSet.function, dominatorTree> e : p.getCFG().getFuncDTree().entrySet()){
+			System.out.println(e.getKey().print());
+			e.getValue().printRSet();
+			e.getValue().printTree();
+		}
+		
+		VariableSet varSet = p.getVarSet();// get variable set
+		VariableSet.variableScope gS = varSet.getGlobalScope(); // get global variable scope 
+		gS.getChildScope();//get function variable scope
+		for(VariableSet.variable v : gS.getVarSet().values()){// get variable - check type!
+			DefUseChain vdu = v.getDU();//get variable's def-use chain
+			for(DefUseChain.chainNode cn : vdu.getDefChian()){
+				cn.getIns();// get def
+				cn.getUsedIns();// get used ins
+			}
+		}
 	}
 	
 	// Token - Value map

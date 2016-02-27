@@ -38,6 +38,10 @@ public class VariableSet {
 		return globalScope.varSet;
 	}
 	
+	public variableScope getGlobalScope(){
+		return globalScope;
+	}
+	
 	//???? make sure the variable id
 	public boolean add(int identId, variable var){
 		if(curScope.varSet.containsKey(identId)){
@@ -234,7 +238,7 @@ public class VariableSet {
 		protected static final int varFunction = 4;
 	}
 	
-	class variableScope {
+	public class variableScope {
 		public variableScope(variableScope parentScope){
 			if(parentScope != null){
 				level = parentScope.level+1;
@@ -251,6 +255,14 @@ public class VariableSet {
 		
 		public int getLevel(){
 			return level;
+		}
+		
+		public ArrayList<variableScope> getChildScope(){
+			return childScope;
+		}
+		
+		public HashMap<Integer, variable> getVarSet(){
+			return varSet;
 		}
 		
 		private HashMap<Integer, variable> varSet = new HashMap<Integer, variable>();

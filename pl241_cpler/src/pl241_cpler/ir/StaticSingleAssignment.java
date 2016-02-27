@@ -172,8 +172,9 @@ public class StaticSingleAssignment extends Instruction {
 	
 	public static void varRename(ControlFlowGraph cfg){
 		for(VariableSet.function f : cfg.getFuncSet().keySet()){
-			System.out.println(f.print()+" : ");
+			//System.out.println(f.print()+" : ");
 			dominatorTree t = new dominatorTree(cfg.getFuncSet().get(f));
+			cfg.putFuncDTree(f, t);
 			visited.clear();
 			loadSlot = cfg.getFuncSet().get(f).get(0);
 			dfsT(t.getTreeRoot(), t.getRDSet());
