@@ -181,13 +181,14 @@ public class Parser {
 	private void assignment(){
 		next();
 		Operand target = designator();
-		//Create Phi function here
 		if(token == becomesToken){
 			next();
 			Operand value = expression();
 			if(target.getType() == opArray){
+				//Create Phi function here
 				cfg.addInsToCurBlock(Instruction.genIns(store, value,  target, ((VariableSet.array)target).getAddr()));
 			}else{
+				//Create Phi function here
 				cfg.addInsToCurBlock(Instruction.genIns(move, value, target));
 				if(((VariableSet.scale)target).getScopeLevel() == global)
 					cfg.curFunc().addGV((VariableSet.scale)target);
@@ -202,7 +203,7 @@ public class Parser {
 	//???? seems something happen here for passing parameters
 	//???? currently to load return value indicate by function
 	//???? pre-compile and later fix the function define should be down
-	//???? record use of global variable, store here as parameter
+	//???? record usage of global variable, store here as parameter
 	private Operand funCall(){
 		next();
 		Operand returnVal = null;
@@ -277,7 +278,7 @@ public class Parser {
 				}
 			}
 			if(func.getReturnState()){
-				returnVal = Instruction.genIns(load, func, null);
+				returnVal = Instruction.genIns(load, null, func);
 				cfg.addInsToCurBlock((Instruction)returnVal);
 				return returnVal;
 			}
@@ -288,7 +289,6 @@ public class Parser {
 	}
 	
 	//for each if, add phi functions to list, each if gets it phi from end of the list to itself's list
-	//recode the if/else route to help find the def of the ssa value
 	private void ifStatement(){
 		next();
 		relation();
@@ -322,6 +322,7 @@ public class Parser {
 	}
 	
 	//whileStatement = “while” relation “do” StatSequence “od”.
+	//similar with if, 
 	private void whileStatement(){
 		next();
 		cfg.addAndMoveToNextBlock();
@@ -354,8 +355,6 @@ public class Parser {
 		cfg.curFunc().setReturnState(true);
 		Operand value = expression();
 		cfg.addInsToCurBlock(Instruction.genIns(store, value, cfg.curFunc()));
-		//means function return - addr will be determined when code generation
-		cfg.addInsToCurBlock(Instruction.genIns(bra, null, null));
 	}
 	
 	//statement = assignment | funcCall | ifStatement | whileStatement | returnStatement.
@@ -506,6 +505,8 @@ public class Parser {
 			if(isStatement())
 				stateSequence();
 			if(token == endToken){
+				//means function return - addr will be determined when code generation
+				cfg.addInsToCurBlock(Instruction.genIns(bra, null, null));
 				next();
 			}else{
 				showError("Expected } in funcBody");
@@ -670,7 +671,7 @@ public class Parser {
 	}
 	
 	// Token - Value map
-	private final int	erroToken		=	0, 
+	public final int	erroToken		=	0, 
 						
 						timesToken 		= 	1,	//	*
 						divToken		=	2,	//	/
@@ -770,7 +771,8 @@ public class Parser {
 						defaultFuncMax	=	1024,
 						OutputNum      	=	300,
 						OutputNewLine 	= 	301,//OutPutNum(x)
-						InputNum		=	302;//x=InputNum()
+						InputNum		=	302,
+						callerFunc		=	500;//x=InputNum()
 	
 	static final int normalRoute 	= 0,
 			 		 ifRoute		= 1,

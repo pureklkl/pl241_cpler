@@ -10,52 +10,21 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 public class ControlFlowGraph {
-	protected class Block implements Operand{
-		
-		void addIns(Instruction ins){
-			insList.add(ins);
-		}
-		
-		void addInsToHead(Instruction ins){
-			insList.add(0, ins);
-		}
-		
-		@Override
-		public int getType() {
-			// TODO Auto-generated method stub
+	
+	HashSet<Block> visited = new HashSet<Block>();
+	
+	private Block curBlock;
+	private VariableSet.function curFunc;
+	private Stack<Integer> curRoute;
+	
+	Stack<Block> stackedBlock = new Stack<Block>();
+	Stack<Instruction> stackedIns = new Stack<Instruction>();
+	
+	private HashMap<VariableSet.function, dominatorTree> funcSetT = new HashMap<VariableSet.function, dominatorTree>();
+	private HashMap<VariableSet.function, LinkedList<Block>> funcSet = new HashMap<VariableSet.function, LinkedList<Block>>();
+	private HashMap<VariableSet.function, LinkedList<Block>> preDeffuncSet = new HashMap<VariableSet.function, LinkedList<Block>>();
+	static private int blockCreated = 0;
 			
-			return opBlock;
-		}
-		
-		public String print(){
-			return "Block - " + Integer.toString(id) + "\t";
-		}
-		
-		public int equalRoute(Stack<Integer> r){
-			int equalNum = 0;
-			return equalNum;
-		}
-		
-		public LinkedList<Block> getSuccessor(){
-			return down;
-		}
-		
-		public LinkedList<Instruction> getInsList(){
-			return insList;
-		}
-		
-		private Block loopEnd = null;
-		private Block loopHead = null;
-		private LinkedList<Block> up	= null;
-		private LinkedList<Block> down = null;
-		private LinkedList<Instruction> insList = new LinkedList<Instruction>();
-		private int id = blockCreated++;
-		private VariableSet curVarSet;
-		private final static int opBlock = 5;
-
-		private Stack<Integer> ifElseRoute;
-	}
-		
 	@SuppressWarnings("unchecked")
 	public void addNewFuncBlock(VariableSet.function func){
 		Block b = new Block();
@@ -68,16 +37,7 @@ public class ControlFlowGraph {
 		b.ifElseRoute = (Stack<Integer>) curRoute.clone();
 		Instruction.setCurBlock(b);
 	}
-/*	
-	public void addDefaultBlock(VariableSet.function func){
-		Block b = new Block();
-		LinkedList<Block> blockList = new LinkedList<Block>();
-		blockList.add(b);
-		funcSet.put(func, blockList);
-		curBlock = b;
-		curFunc = func;
-	}
-*/	
+
 	private void linkSeqBlock(Block upB, Block downB){
 		if(upB.down == null){
 			upB.down = new LinkedList<Block>();
@@ -123,6 +83,7 @@ public class ControlFlowGraph {
 	public void loopBack(){
 		Block loopHead = stackedBlock.pop();
 		loopHead.loopEnd = curBlock;
+		loopHead.isLH = true;
 		curBlock.loopHead = loopHead;
 		linkSeqBlock(curBlock, loopHead);
 		curBlock.addIns(Instruction.genIns(bra, null, loopHead));
@@ -196,7 +157,7 @@ public class ControlFlowGraph {
 		System.out.println();
 		System.out.println(b.print()+" [ ");
 		for(Instruction i : b.insList){
-			System.out.println(Integer.toString(i.getId()) + "	:	"+ i.print());
+			System.out.println(i.print());
 		}
 		System.out.println(" ] ");
 	}
@@ -214,19 +175,77 @@ public class ControlFlowGraph {
 		}
 	}
 	
-	HashSet<Block> visited = new HashSet<Block>();
+	public class Block implements Operand{
+		
+		private Block loopEnd = null;
+		private Block loopHead = null;
+		private boolean isLH = false;//is loop head
+		private LinkedList<Block> up	= null;
+		private LinkedList<Block> down = null;
+		private LinkedList<Instruction> insList = new LinkedList<Instruction>();
+		private int id;
+		private VariableSet curVarSet;
+		private final static int opBlock = 5;
+		private Stack<Integer> ifElseRoute;
+		
+		private HashSet<Integer> livedIn;//operand live from end to this block(after the definition block)
+		private HashSet<Integer> liveOut;//operand live from start to this block(before the last usage block)
+		
+		
+		void addIns(Instruction ins){
+			insList.add(ins);
+		}
+		
+		void addInsToHead(Instruction ins){
+			insList.add(0, ins);
+		}
+		
+		public Block(){
+			id = blockCreated++;
+		}
+		
+		@Override
+		public int getType() {
+			return opBlock;
+		}
+		
+		public int getFirstInsSeqId(){
+			return insList.getFirst().seqId;
+		}
+		
+		public int getLastInsSeqId(){
+			return insList.getLast().seqId;
+		}
+		
+		public boolean isLoopHead(){
+			return isLH;
+		}
+		
+		public Block getLoopEnd(){
+			return loopEnd;
+		}
+		
+		public LinkedList<Block> getSuccessor(){
+			return down;
+		}
+		
+		public LinkedList<Instruction> getInsList(){
+			return insList;
+		}
+		
+		public HashSet<Integer> getLivedIn() {
+			return livedIn;
+		}
+
+		public void setLivedIn(HashSet<Integer> livedIn) {
+			this.livedIn = livedIn;
+		}
+		
+		public String print(){
+			return "Blk-" + Integer.toString(id);
+		}
+	}
 	
-	private Block curBlock;
-	private VariableSet.function curFunc;
-	private Stack<Integer> curRoute;
-	
-	Stack<Block> stackedBlock = new Stack<Block>();
-	Stack<Instruction> stackedIns = new Stack<Instruction>();
-	
-	private HashMap<VariableSet.function, dominatorTree> funcSetT = new HashMap<VariableSet.function, dominatorTree>();
-	private HashMap<VariableSet.function, LinkedList<Block>> funcSet = new HashMap<VariableSet.function, LinkedList<Block>>();
-	private HashMap<VariableSet.function, LinkedList<Block>> preDeffuncSet = new HashMap<VariableSet.function, LinkedList<Block>>();
-	static private int blockCreated = 0;
 	static final int bra = Parser.bra;
 	
 	static final int normalRoute 	= 0,

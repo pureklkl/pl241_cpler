@@ -1,25 +1,91 @@
 package pl241_cpler.ir;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+
+import pl241_cpler.backend.Location;
+import pl241_cpler.ir.ControlFlowGraph.Block;
 
 public class Instruction implements Operand{
-		
+	
+	protected ArrayList<Operand> ops;
+	protected ControlFlowGraph.Block locate;
+	
+	protected static ControlFlowGraph.Block curLocate;
+	protected int insType;
+	protected boolean singleIns;
+	protected int id;
+	private static int insCreated = 0;
+	
+	private static final int irSimple	= 0,
+			                 irSSA 		= 1;
+	protected static int irType = irSimple;
+	
+	// used for live range analysis
+	protected int seqId = -1;
+	protected int outputId = nonOutput;
+	protected LinkedList<Integer> opsInsId = new LinkedList<Integer>();
+	protected Location la, lb, lc;//output a, operand b, operand c
+	
 	public Instruction(int insType_, Operand o1, Operand o2){
 		ops = new ArrayList<Operand>();
 		insType = insType_;
-		ops.add(o1);
-		ops.add(o2);
+		ops.add(o1);opsInsId.add(null);
+		ops.add(o2);opsInsId.add(null);
 		this.locate = curLocate;
+		id = insCreated++;
 	}
 	
 	public Instruction(int insType_, Operand o1, Operand o2, Operand o3){
 		ops = new ArrayList<Operand>();
 		insType = insType_;
-		ops.add(o1);
-		ops.add(o2);
-		ops.add(o3);
+		ops.add(o1);opsInsId.add(null);
+		ops.add(o2);opsInsId.add(null);
+		ops.add(o3);opsInsId.add(null);
 		this.locate = curLocate;
+		id = insCreated++;
 	}	
+	
+	//private copy constructor, used for deep clone
+	private Instruction(Instruction i){
+		id = i.id;
+		insType = i.insType;
+		
+		//following copy need assistance from hashmap to corresponding new copy result
+		ops = new ArrayList<Operand>();
+		ops.add(i.ops.get(0));
+		ops.add(i.ops.get(1));		
+		if(i.ops.size()>2)
+			ops.add(i.ops.get(2));
+		locate = i.locate;
+		
+	}
+	
+	public boolean isReal(){
+		return !(ops.size()==2&&ops.get(1).getType() == opArray);
+	}
+	
+	public boolean isArray() {
+		// TODO Auto-generated method stub
+		return ops.get(0).getType() == opArray;
+	}
+	
+	public void setSeqId(int seqId){
+		this.seqId = seqId;
+	}
+	
+	public int getSeqId(){
+		return seqId;
+	}
+	
+	public int getOutputId() {
+		return outputId;
+	}
+
+	public void setOutputId(int outputId) {
+		this.outputId = outputId;
+	}
 	
 	public int getInsType(){
 		return insType;
@@ -31,6 +97,18 @@ public class Instruction implements Operand{
 	
 	public int getId(){
 		return id;
+	}
+
+	public LinkedList<Integer> getOpsInsId() {
+		return opsInsId;
+	}
+
+	public void setOpsInsId(LinkedList<Integer> opsInsId) {
+		this.opsInsId = opsInsId;
+	}
+	
+	public void setOpSeqId(){
+		//override in ssa
 	}
 	
 	public static void genSSA(){
@@ -68,8 +146,18 @@ public class Instruction implements Operand{
 		ops.set(1, o);
 	}
 	
+	public Instruction deepCopy(HashMap<Operand, Operand> opMap, HashMap<Block, Block> bMap){
+		Instruction copyIns = new Instruction(this);
+		opMap.put(this, copyIns);
+		copyIns.locate = bMap.get(copyIns.locate);
+		return copyIns;
+	}
+	
 	public String print(){
-		String insprint = codeToName(insType);
+		String insprint = Integer.toString(id)+"\t";
+		if(seqId>=0)
+			insprint += Integer.toString(seqId)+"\t";
+		insprint+=": " + codeToName(insType);
 		insprint +=	"\t";
 		for(Operand o : ops){
 			if(o != null)
@@ -96,7 +184,7 @@ public class Instruction implements Operand{
 		
 		case	adda	:	return new String("adda ");
 		case	load	:	return new String("load ");
-		case	store	:	return new String("store ");
+		case	store	:	return new String("stro ");
 		case	move	:	return new String("move ");
 		case	phi		:	return new String("phi ");
 		case	end		:	return new String("end ");
@@ -110,27 +198,20 @@ public class Instruction implements Operand{
 		case	bgt		:	return new String("bgt ");
 		
 		case	read	:	return new String("read ");
-		case	write	:	return new String("write ");
-		case	writeNL	:	return new String("writeNL ");
+		case	write	:	return new String("wrt  ");
+		case	writeNL	:	return new String("wrtN ");
 		default			:	return new String("Error Ins");
 		}
 	}
-	
-	protected ArrayList<Operand> ops;
-	protected ControlFlowGraph.Block locate;
-	
-	protected static ControlFlowGraph.Block curLocate;
-	protected int insType;
-	protected boolean singleIns;
-	protected int id = insCreated++;
-	private static int insCreated = 0;
-	
-	protected static final int opIns = 2,
+		
+	protected static final int opScale 	= 0,
+							   opArray  = 1,
+							   opIns 	= 2,
 							   opFunc	= 4;
-	private static final int irSimple = 0;
-	private static final int irSSA = 1;
 	
-	protected static int irType = irSimple;
+	
+	public static final int nonOutput = -1;
+	
 	protected static final int
 	kill			=	-2,
 	decl			=	-1,
@@ -159,4 +240,5 @@ public class Instruction implements Operand{
 	read			=	30,
 	write			=	31,
 	writeNL			=	32;
+
 }

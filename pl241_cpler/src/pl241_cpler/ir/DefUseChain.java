@@ -9,25 +9,6 @@ import pl241_cpler.ir.ControlFlowGraph.Block;
 
 public class DefUseChain {
 	
-	public class chainNode{
-		public chainNode(Instruction def){
-			defIns = def;
-		}
-		public void addUse(Instruction use){
-			usedIns.add(use);
-		}
-		public Instruction getIns(){
-			return defIns;
-		}
-		
-		public LinkedList<Instruction> getUsedIns(){
-			return usedIns;
-		}
-		
-		Instruction defIns;
-		LinkedList<Instruction> usedIns = new LinkedList<Instruction>();
-	}
-
 	Stack<chainNode> stackedDef = new Stack<chainNode>();
 	Stack<chainNode> defchain = new Stack<chainNode>();
 	
@@ -39,8 +20,13 @@ public class DefUseChain {
 		defchain.push(new chainNode(Instruction.genIns(decl, null, null)));
 	}
 	
+	public DefUseChain(DefUseChain du) {
+		// TODO Auto-generated constructor stub
+	}
+
 	private chainNode updateStackedIns(Block locate, HashMap<Block, HashSet<Block>> rdoSet){
 		chainNode res = null;
+		//In dominator tree, when move from one subtree to another subtree, pop the definitions from original subtree
 		while(!stackedDef.isEmpty()){
 			chainNode d = stackedDef.peek();
 			if(!rdoSet.get(locate).contains(d.defIns.getBlock()))
@@ -72,6 +58,25 @@ public class DefUseChain {
 
 	public Stack<chainNode> getStackedDef(){
 		return stackedDef;
+	}
+	
+	public class chainNode{
+		public chainNode(Instruction def){
+			defIns = def;
+		}
+		public void addUse(Instruction use){
+			usedIns.add(use);
+		}
+		public Instruction getIns(){
+			return defIns;
+		}
+		
+		public LinkedList<Instruction> getUsedIns(){
+			return usedIns;
+		}
+		
+		Instruction defIns;
+		LinkedList<Instruction> usedIns = new LinkedList<Instruction>();
 	}
 	
 	public static final int decl = -1; 
