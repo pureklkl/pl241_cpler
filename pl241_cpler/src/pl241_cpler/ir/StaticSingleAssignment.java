@@ -3,6 +3,7 @@ package pl241_cpler.ir;
 import java.util.LinkedList;
 import java.util.Stack;
 
+import pl241_cpler.backend.Location;
 import pl241_cpler.ir.ControlFlowGraph.Block;
 import pl241_cpler.ir.VariableSet.variable;
 import pl241_cpler.ir.DefUseChain.chainNode;
@@ -12,12 +13,17 @@ import java.util.HashSet;
 
 public class StaticSingleAssignment extends Instruction {
 	
+	public static final int showSSA = 0,
+			 				 showREG = 1;
+	
 	private static ControlFlowGraph.Block loadSlot = null;
 	private static HashSet<dominatorTree.treeNode> visited = new HashSet<dominatorTree.treeNode>();
 	
 	private LinkedList<Instruction> version = new LinkedList<Instruction>();
 	private LinkedList<Block> phiFrom = null;
 	private static Stack<HashSet<VariableSet.variable>> phiRecord = new Stack<HashSet<VariableSet.variable>>();
+	
+	private static int showType = showSSA;
 	
 	public StaticSingleAssignment(int insType_, Operand o1, Operand o2){
 		super(insType_, o1, o2);
@@ -36,6 +42,25 @@ public class StaticSingleAssignment extends Instruction {
 		version.add(null);
 		version.add(null);
 		addAssignmentForPhi();
+	}
+	
+	public StaticSingleAssignment(int insType, Location a, Location b, Location c) {
+		super(insType, null, null);
+		version.add(null);
+		version.add(null);
+		this.insType = insType;
+		this.la = a;
+		this.ll.set(0, b);
+		this.ll.set(1, c);
+	}
+	
+	public StaticSingleAssignment(int insType, Location a, Operand b, Location c){
+		super(insType, b, null);
+		version.add(null);
+		version.add(null);
+		this.insType = insType;
+		this.la = a;
+		this.ll.set(1, c);
 	}
 	
 	public static void pushNewPhiBlock(){
@@ -65,6 +90,7 @@ public class StaticSingleAssignment extends Instruction {
 		return (i.insType == store && i.ops.size() == 3) || i.insType == kill || i.insType == move || i.insType == phi;
 	}
 	
+	@Override
 	public void setOpSeqId(){
 		for(int i = version.size() - 1; i>=0 ;i--){
 			if(version.get(i) != null && version.get(i).insType!=decl && ops.get(i).getType() == opScale)
@@ -74,8 +100,25 @@ public class StaticSingleAssignment extends Instruction {
 		}
 	}
 	
+	@Override
+	public void setOpLoc(){
+		for(int i = version.size()-1; i>=0; i--){
+			Instruction ins = version.get(i);
+			if(ins!=null){
+				ll.set(i, ins.la);
+			}else if(ops.get(i)!=null&&ops.get(i).getType()==opIns){
+				Instruction insResult = (Instruction)ops.get(i);
+				ll.set(i, insResult.la);
+			}
+		}
+	}
+		
 	public LinkedList<Block> getPhiFrom() {
 		return phiFrom;
+	}
+	
+	public static void setShowType(int showType) {
+		StaticSingleAssignment.showType = showType;
 	}
 	
 	//functions below are used for rename variable
@@ -95,8 +138,8 @@ public class StaticSingleAssignment extends Instruction {
 			((StaticSingleAssignment)initialLoad).version.set(1, initialLoad);
 			def = odu.getDef(locate, rdoSet);
 		}
-		if(def == null){
-			def = null;
+		if(def.getIns().getInsType() == kill){
+			def.getIns().setInsType(load);
 		}
 		return def;
 	} 
@@ -184,6 +227,42 @@ public class StaticSingleAssignment extends Instruction {
 		}
 	}
 	
+	public String ssaPrint(Operand o, int i){
+		String insprint = "";
+		if(o.getType() == opIns)
+			insprint += "(" + Integer.toString(((Instruction)o).getId())+ ")";
+		else if(o.getType() == opFunc){
+			if(((VariableSet.function)o).getIdentId()==callerFunc)
+				insprint += "->ret";
+			else
+				insprint += o.print();
+		}else if(o.getType()<=opArray&&version.get(i)!=null)
+			insprint += o.print()+"_"+Integer.toString(version.get(i).id);
+		else
+			insprint += o.print();
+		return insprint;
+	}
+	
+	public String regPrint(){
+		String insprint = "";
+		for(int i=0;i<ops.size();i++){
+			if(ll.get(i)!=null){
+				insprint+=ll.get(i).print();
+				if(ops.get(i)!=null)
+					insprint+="{"+ssaPrint(ops.get(i), i)+"}";
+			}else{
+				Operand o = ops.get(i);
+				if(o!=null)
+					insprint += ssaPrint(o, i);
+			}
+			insprint += "\t";
+		}
+		if(la != null){
+			insprint+="-> "+la.print();
+		}
+		return insprint;
+	}
+	
 	public String print(){
 		String insprint = Integer.toString(id)+"\t";
 		if(seqId>=0)
@@ -196,30 +275,25 @@ public class StaticSingleAssignment extends Instruction {
 			insprint += "\t";
 		insprint+=": " + codeToName(insType);
 		insprint +=	"\t";
-		for(int i = 0; i<ops.size();i++){
-			Operand o = ops.get(i);
-			if(o != null)
-				if(o.getType() == opIns)
-					insprint += "(" + Integer.toString(((Instruction)o).getId())+ ") ";
-				else if(o.getType() == opFunc){
-					if(((VariableSet.function)o).getIdentId()==callerFunc)
-						insprint += "->ret";
-					else
-						insprint += o.print();
-				}else if(o.getType()<=opArray&&version.get(i)!=null)
-					insprint += o.print()+"_"+Integer.toString(version.get(i).id);
-				else
-					insprint += o.print();
-			if(i<2)
-				insprint += "\t";
+		if(showType == showSSA)
+			for(int i = 0; i<ops.size();i++){
+				Operand o = ops.get(i);
+				if(o != null)
+						insprint += ssaPrint(o, i);
+				if(i<2)
+					insprint += "\t";
+			}
+		else{
+			insprint += regPrint();
 		}
 		return insprint;
 	}
-	
+		
 	private static final int 
 							 opScale =  0,
 							 opArray = 	1;
-	private static final int whileRoute = 3;
+
 	private static final int kill 		= -2;
 	private static final int callerFunc		=	500;
+
 }

@@ -26,13 +26,17 @@ public class Instruction implements Operand{
 	protected int seqId = -1;
 	protected int outputId = nonOutput;
 	protected LinkedList<Integer> opsInsId = new LinkedList<Integer>();
-	protected Location la, lb, lc;//output a, operand b, operand c
+	protected Operand output = null;
+	
+	//regsiter allocation
+	protected Location la = null;//output a
+	protected LinkedList<Location> ll = new LinkedList<Location>();//operand b, operand c
 	
 	public Instruction(int insType_, Operand o1, Operand o2){
 		ops = new ArrayList<Operand>();
 		insType = insType_;
-		ops.add(o1);opsInsId.add(null);
-		ops.add(o2);opsInsId.add(null);
+		ops.add(o1);opsInsId.add(null);ll.add(null);
+		ops.add(o2);opsInsId.add(null);ll.add(null);
 		this.locate = curLocate;
 		id = insCreated++;
 	}
@@ -40,9 +44,9 @@ public class Instruction implements Operand{
 	public Instruction(int insType_, Operand o1, Operand o2, Operand o3){
 		ops = new ArrayList<Operand>();
 		insType = insType_;
-		ops.add(o1);opsInsId.add(null);
-		ops.add(o2);opsInsId.add(null);
-		ops.add(o3);opsInsId.add(null);
+		ops.add(o1);opsInsId.add(null);ll.add(null);
+		ops.add(o2);opsInsId.add(null);ll.add(null);
+		ops.add(o3);opsInsId.add(null);ll.add(null);
 		this.locate = curLocate;
 		id = insCreated++;
 	}	
@@ -63,12 +67,15 @@ public class Instruction implements Operand{
 	}
 	
 	public boolean isReal(){
-		return !(ops.size()==2&&ops.get(1).getType() == opArray);
+		return !((insType == load&&ops.size()==2&&ops.get(1).getType() == opArray)||(insType == kill));
 	}
 	
 	public boolean isArray() {
-		// TODO Auto-generated method stub
 		return ops.get(0).getType() == opArray;
+	}
+	
+	public void unRealRemove(){
+		locate.getInsList().remove(this);
 	}
 	
 	public void setSeqId(int seqId){
@@ -83,12 +90,30 @@ public class Instruction implements Operand{
 		return outputId;
 	}
 
+	//output maybe a define for scale or instruction result
 	public void setOutputId(int outputId) {
 		this.outputId = outputId;
+		if((insType == move|| insType == load)&&ops.get(1).getType() == opScale){
+			output = ops.get(1);
+		}else{
+			output = this;
+		}
+	}
+	
+	public void setOutputLocation(Location la){
+		this.la = la;
+	}
+			
+	public Operand getOutput() {
+		return output;
 	}
 	
 	public int getInsType(){
 		return insType;
+	}
+	
+	public void setInsType(int insType){
+		this.insType = insType;
 	}
 	
 	public int getType(){
@@ -107,8 +132,25 @@ public class Instruction implements Operand{
 		this.opsInsId = opsInsId;
 	}
 	
+	
 	public void setOpSeqId(){
 		//override in ssa
+	}
+	
+	public void setOpLoc(){
+		//override in ssa
+	}
+	
+	public Location getLoc(int i) {
+		return ll.get(i);
+	}
+	
+	public Operand getOp(int i){
+		return ops.get(i);
+	}
+	
+	public Location getOutputLoc(){
+		return la;
 	}
 	
 	public static void genSSA(){
@@ -129,6 +171,14 @@ public class Instruction implements Operand{
 			return new StaticSingleAssignment(insType_, o1, o2, o3);
 		}
 	}
+	public static Instruction genLIR(int insType, Location a, Location b, Location c){
+		return new StaticSingleAssignment(insType, a, b, c);
+	}
+	
+	public static Instruction genLIR(int insType, Location a, Operand b, Location c){
+		return new StaticSingleAssignment(insType, a, b, c);
+	}
+	
 	public void setBlock(ControlFlowGraph.Block b){
 		locate = b;
 	}

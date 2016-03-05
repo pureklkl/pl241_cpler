@@ -95,6 +95,17 @@ public class ControlFlowGraph {
 		curBlock.addIns(ins);
 		stackedIns.push(ins);
 	}
+	
+	public void retCheck() {
+		if( curBlock.insList.isEmpty())
+			addInsToCurBlock(Instruction.genIns(bra, null, null));
+		else{
+			Instruction lastIns = curBlock.insList.getLast();
+			if(!(lastIns.insType == bra && lastIns.ops.get(0)==null && lastIns.ops.get(1)==null))
+				addInsToCurBlock(Instruction.genIns(bra, null, null));
+		}
+	}
+	
 	//the jump ins to current block have not created yet, so push current block, used for loop
 	public void pushCurBlock(){
 		stackedBlock.push(curBlock);
@@ -229,6 +240,10 @@ public class ControlFlowGraph {
 			return down;
 		}
 		
+		public LinkedList<Block> getPredecessor(){
+			return up;
+		}
+		
 		public LinkedList<Instruction> getInsList(){
 			return insList;
 		}
@@ -252,7 +267,5 @@ public class ControlFlowGraph {
 					 ifRoute		= 1,
 					 elseRoute		= 2,
 					 whileRoute		= 3;
-
-
 	
 }

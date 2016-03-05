@@ -24,10 +24,9 @@ public class LiveTime {
 	//judge the instruction i has a output
 	public static boolean hasOutPut(Instruction i){
 		int insType = i.getInsType();
-		return (insType == kill && i.isReal())	||
-			   insType == neg	|| insType == add	|| insType == sub	|| insType == mul	|| insType == div	||
+		return insType == neg	|| insType == add	|| insType == sub	|| insType == mul	|| insType == div	||
 			   insType == cmp	|| insType == read  ||
-			   insType == adda	|| (insType == load && i.isReal())||// load/kill array as definition has no output
+			   insType == adda	|| insType == load ||
 			   insType == move	|| (insType == phi	&& !i.isArray());// phi for array has no output
 	}
 	
@@ -36,16 +35,36 @@ public class LiveTime {
 	//operand used by instruction either be a constant(don't need register) or an output of another instruction(need register)
 	public void assignId(){
 		for(LinkedList<Block> lb : cfg.getFuncSet().values()){
+			boolean prevPhi = false;
 			for(int i = 0; i<lb.size(); i++){
 				Block b = lb.get(i);
 				LinkedList<Instruction> li = b.getInsList();
 				for(int i1 = 0; i1<li.size(); i1++){
 					Instruction ins = li.get(i1);
-					ins.setSeqId(seqId++);
+					if(!ins.isReal()){// kill and load array as definition is not real ins
+						ins.unRealRemove();
+						i1--;
+						continue;
+					}
+					if(ins.getInsType() == phi){
+						ins.setSeqId(seqId);
+						prevPhi = true;
+					}
+					else{
+						if(prevPhi){
+							prevPhi = false;
+							seqId++;
+						}
+						ins.setSeqId(seqId++);
+					}
 					if(hasOutPut(ins)){
 						ins.setOutputId(outputId++);
 						lr.add(new liveRange(ins));
 					}
+				}
+				if(prevPhi){//test009 when nested if, two join block may be connected lead to phi in different block has same seq id 
+					prevPhi = false;
+					seqId++;
 				}
 			}
 		}
@@ -58,10 +77,12 @@ public class LiveTime {
 			Instruction ins = li.get(i);
 			if(ins.getInsType() == phi){
 				StaticSingleAssignment ssaIns = (StaticSingleAssignment)ins;
-				ssaIns.setOpSeqId();//when process while, define id need get before actual process this phi 
+				ssaIns.setOpSeqId();//when process while, define id need be gotten before actual process this phi 
 				LinkedList<Block> bf = ssaIns.getPhiFrom();
 					for(int i1 = bf.size() - 1; i1>=0; i1--){
+						//TODO how phi get ops without output?
 						if(bf.get(i1) == b && ssaIns.getOpsInsId().get(i1)!=null){
+							Integer opd = ins.getOpsInsId().get(i1);
 							live.add(ssaIns.getOpsInsId().get(i1));
 						}
 					}
@@ -97,9 +118,10 @@ public class LiveTime {
 						Integer opd = ins.getOpsInsId().get(i2);
 						int insType = ins.getInsType();
 						if(opd!=null 
-						   && !((insType == kill||insType == move||insType == load) && i2 == 1)
-						   && insType!=phi){
-							lr.get(opd).addRange(b.getFirstInsSeqId(), ins.getSeqId());//
+						   && !((insType == move||insType == load) && i2 == 1)//this is output
+						   && insType!=phi){//phi is process separately
+							if(b.getFirstInsSeqId()<=ins.getSeqId()-1)
+								lr.get(opd).addRange(b.getFirstInsSeqId(), ins.getSeqId()-1);//
 							live.add(opd);
 						}
 					}
@@ -112,6 +134,10 @@ public class LiveTime {
 				b.setLivedIn(live);
 			}
 		}
+	}
+	
+	public LinkedList<liveRange> getLr() {
+		return lr;
 	}
 	
 	public void print(){
@@ -206,6 +232,9 @@ public class LiveTime {
 			for(liveInternal lt : liList){
 				lt.print();
 			}
+			if(lc != null){
+				System.out.print(lc.print());
+			}
 		}
 		
 		private void addRange(int from, int to){
@@ -218,6 +247,7 @@ public class LiveTime {
 						if(liList.get(i).from<=to+1){
 							lastTo = lastTo>liList.get(i).to?lastTo:liList.get(i).to;
 							liList.remove(i);
+							i--;
 						}else{
 							break;
 						}
@@ -275,7 +305,7 @@ public class LiveTime {
 	static private final int baseTable = 7;
 	
 	static private final int 
-	kill			=	-2,
+
 	neg				= 	0,
 	add				=	11,
 	sub				=	12,

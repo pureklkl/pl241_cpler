@@ -15,6 +15,7 @@ public class VariableSet {
 	private variableScope curScope = null;
 	private variableScope globalScope = null;
 	private LinkedList<variableScope> scopeList = new LinkedList<variableScope>();
+	private HashMap<Integer, variable> idvarSet = new HashMap<Integer, variable>();
 	
 	public VariableSet(){
 		curScope = new variableScope(null, 0);
@@ -82,6 +83,7 @@ public class VariableSet {
 		}
 		var.locate=curScope;
 		curScope.varSet.put(identId, var);
+		idvarSet.put(var.id, var);
 		return true;
 	}
 	
@@ -160,6 +162,10 @@ public class VariableSet {
 		
 		public int getIdentId(){
 			return identId;
+		}
+		
+		public int getId(){
+			return id;
 		}
 		
 		public abstract variable addNew(String addName, int id);

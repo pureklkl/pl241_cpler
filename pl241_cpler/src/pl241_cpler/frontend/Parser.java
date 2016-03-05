@@ -355,6 +355,9 @@ public class Parser {
 		cfg.curFunc().setReturnState(true);
 		Operand value = expression();
 		cfg.addInsToCurBlock(Instruction.genIns(store, value, cfg.curFunc()));
+		//means function return - addr will be determined when code generation
+		cfg.addInsToCurBlock(Instruction.genIns(bra, null, null));
+		
 	}
 	
 	//statement = assignment | funcCall | ifStatement | whileStatement | returnStatement.
@@ -505,8 +508,7 @@ public class Parser {
 			if(isStatement())
 				stateSequence();
 			if(token == endToken){
-				//means function return - addr will be determined when code generation
-				cfg.addInsToCurBlock(Instruction.genIns(bra, null, null));
+				cfg.retCheck();
 				next();
 			}else{
 				showError("Expected } in funcBody");
