@@ -6,7 +6,9 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Stack;
 
+import pl241_cpler.backend.Location;
 import pl241_cpler.ir.VariableSet.function;
+import pl241_cpler.ir.VariableSet.variable;
 
 import java.util.ArrayList;
 
@@ -39,6 +41,7 @@ public class VariableSet {
 		for(int i = 0; i < varnum; i++){
 			func.addParam(new scale()).setName("v"+Integer.toString(i), -1);
 		}
+		func.setVscope(curScope);
 		returnToParentScope();
 	}
 	
@@ -76,6 +79,10 @@ public class VariableSet {
 		return globalScope;
 	}
 	
+	public variableScope getCurScope() {
+		return curScope;
+	}
+
 	//???? make sure the variable id
 	public boolean add(int identId, variable var){
 		if(curScope.varSet.containsKey(identId)){
@@ -85,6 +92,10 @@ public class VariableSet {
 		curScope.varSet.put(identId, var);
 		idvarSet.put(var.id, var);
 		return true;
+	}
+	
+	public variable findById(int id) {
+		return idvarSet.get(id);
 	}
 	
 	public variable retrieval(int identId){
@@ -127,7 +138,7 @@ public class VariableSet {
 		private variableScope locate;
 		private DefUseChain du = new DefUseChain();
 		
-		private int address = -1;//-1 means unallocated
+		private int addrOffset;
 		
 		public variable(){
 			id = variableCreated++;
@@ -142,7 +153,7 @@ public class VariableSet {
 			identId = copyFrom.identId;
 			locate = copyFrom.locate;
 			du = new DefUseChain(du);
-			address = copyFrom.address;
+			addrOffset = copyFrom.addrOffset;
 		}
 		
 		public abstract int getType();
@@ -168,11 +179,21 @@ public class VariableSet {
 			return id;
 		}
 		
+		public int getAddrOffset() {
+			return addrOffset;
+		}
+
+		public void setAddrOffset(int addrOffset) {
+			this.addrOffset = addrOffset;
+		}
+
 		public abstract variable addNew(String addName, int id);
 		
 	}
 	
 	public class scale extends variable{
+		private boolean par = false;//>=0 means the par'th parameter
+		
 		public scale(){
 			super();
 		}
@@ -188,6 +209,7 @@ public class VariableSet {
 		public scale addNew(String addName, int id){
 			scale tmp = new scale();
 			tmp.setName(addName, id);
+			idvarSet.put(id, tmp);
 			return tmp;
 		}
 		
@@ -198,10 +220,17 @@ public class VariableSet {
 	
 	public class array extends variable{
 
+		private Instruction curAddr;
+		private ArrayList<Integer> dims;
+		private int size = 1;
+		
 		public array(ArrayList<Integer> dims) {
 			// TODO Auto-generated constructor stub
 			super();
 			this.dims = dims;
+			for(Integer d:dims){
+				size*=d;
+			}
 		}
 		
 		public array(variable copyFrom) {
@@ -216,9 +245,14 @@ public class VariableSet {
 			return dims;
 		}
 		
+		public int getArraySize(){
+			return size;
+		}
+		
 		public array addNew(String addName, int id){
 			array tmp = new array(dims);
 			tmp.setName(addName, id);
+			idvarSet.put(id, tmp);
 			return tmp;
 		}
 		
@@ -234,8 +268,6 @@ public class VariableSet {
 			return name + "[]";
 		}
 		
-		private Instruction curAddr;
-		private ArrayList<Integer> dims;
 		protected static final int opArray = 1;
 	}
 	
@@ -243,14 +275,22 @@ public class VariableSet {
 		
 		private HashSet<variable> usedGlobalVar = new HashSet<variable>();
 		private ControlFlowGraph.Block blockId;//indicate the start block of the function
-		private ArrayList<variable> paramList = new ArrayList<variable>();
+		private ArrayList<scale> paramList = new ArrayList<scale>();
 		private boolean isReturn_ = false;
+		private variableScope vscope = null;
+		
+		//for code generation
+		//Integer corresponding to index in usedSTKREG
+		private HashMap<Location, Integer> locToAddr = new HashMap<Location, Integer>();
+		//used REG is only for save the caller's register
+		private Stack<Location> usedSTKREG = new Stack<Location>();
+		int variableSize=0;
 		
 		public function(variable copyFrom) {
 			// TODO Auto-generated constructor stub
 		}
 		
-		//need default constructor because we have added a copy constructor
+		//need default constructor because we need copy constructor
 		public function() {}
 		
 		public function addNew(String addName, int id){
@@ -259,7 +299,8 @@ public class VariableSet {
 		public int getType(){
 			return opFunc;
 		}
-		public variable addParam(variable param){
+		public variable addParam(scale param){
+			param.par = true;
 			paramList.add(param);
 			return param;
 		}
@@ -299,9 +340,61 @@ public class VariableSet {
 			usedGlobalVar.addAll(gvl);
 		}
 		
+		public void setVscope(variableScope vscope){
+			this.vscope = vscope;
+			vscope.func = this;
+		}
+		
+		public variableScope getVscope() {
+			return vscope;
+		}
+
+		public int assignVar(int varOffset, int parOffset) {
+			HashMap<Integer, variable> varSet = vscope.varSet;
+			int base = 0;
+			for(variable v : varSet.values()){
+				if(v.getType() == opScale && !((scale)v).par){
+					v.addrOffset = (base+varOffset)*4;
+					base++;
+				}else if(v.getType() == opArray){
+					v.addrOffset = (base+varOffset)*4;
+					base+=((VariableSet.array)v).getArraySize();
+				}
+			}
+			variableSize = base+varOffset;
+			base = 0;
+			for(int i = paramList.size()-1; i>=0; i--){
+				paramList.get(i).setAddrOffset((base+parOffset)*4);
+				base--;
+			}
+			return variableSize;
+		}
+		
+		public void assignSTKREG(HashSet<Location> usedSTKREG, int offset){
+			Stack<Location> usedREG = new Stack<Location>();
+			for(Location l : usedSTKREG){
+				if(l.getLocType() == STK){
+					locToAddr.put(l, (this.usedSTKREG.size()+offset)*4);
+					this.usedSTKREG.push(l);
+				}else if(l.getLocType() == REG){
+					usedREG.push(l);
+				}
+			}
+			for(Location l : usedREG){
+				locToAddr.put(l, (this.usedSTKREG.size()+offset)*4);
+				this.usedSTKREG.push(l);
+			}
+		}
+		
+		public int findLoc(Location loc) {
+			return locToAddr.get(loc);
+		}
+		
 		public String print(){
 			return name + "()";
 		}
+
+
 	}
 	
 	public class variableScope {
@@ -313,6 +406,7 @@ public class VariableSet {
 		private variableScope parentScope = null;
 		private ArrayList<variableScope> childScope = null;
 		
+		private function func = null;
 		public variableScope(variableScope parentScope, int level){
 			this.level = level;
 			this.parentScope = parentScope;
@@ -346,6 +440,32 @@ public class VariableSet {
 		public HashMap<Integer, variable> getVarSet(){
 			return varSet;
 		}
+
+	}
+	
+	public void printLayout(){
+		System.out.println();
+		for(variableScope vs:scopeList){
+			System.out.print("Level : "+Integer.toString(vs.level)+"\t");
+			if(vs.func!=null)
+				System.out.println(vs.func.print());
+			else
+				System.out.println();
+			for(variable v:vs.varSet.values()){
+				System.out.println(v.print()+" at "+Integer.toString(v.addrOffset));
+			}
+			if(vs.func!=null)
+				for(Location l:vs.func.usedSTKREG){
+					System.out.println(l.print()+" at "+Integer.toString(vs.func.findLoc(l)));
+				}
+			System.out.println();
+		}
+		function mainFunc = (function) globalScope.getVarSet().get(mainToken);
+		System.out.println(mainFunc.print());
+		for(Location l:mainFunc.usedSTKREG){
+			System.out.println(l.print()+" at "+Integer.toString(mainFunc.findLoc(l)));
+		}
+		System.out.println();
 	}
 	
 	private static int variableCreated = 0;
@@ -354,9 +474,14 @@ public class VariableSet {
 	static final int opScale = 0,
 					 opArray = 1,
 					 opFunc  = 4;
-	
+	static final int mainToken	=	200;
 	private static final int OutputNum		=	300,
 							 OutputNewLine	=	301,
 							 InputNum		=	302,//x=InputNum();//OutPutNum(x)
 							 callerFunc		=	500;
+	public static final int REG = 0,//register
+							MEM = 1,//variable
+							STK = 2;//stack
+
+
 }

@@ -32,6 +32,10 @@ public class Instruction implements Operand{
 	protected Location la = null;//output a
 	protected LinkedList<Location> ll = new LinkedList<Location>();//operand b, operand c
 	
+	//code generation
+	protected int assemblyType;
+	protected int PC = -1;
+	
 	public Instruction(int insType_, Operand o1, Operand o2){
 		ops = new ArrayList<Operand>();
 		insType = insType_;
@@ -103,7 +107,7 @@ public class Instruction implements Operand{
 	public void setOutputLocation(Location la){
 		this.la = la;
 	}
-			
+	
 	public Operand getOutput() {
 		return output;
 	}
@@ -141,6 +145,10 @@ public class Instruction implements Operand{
 		//override in ssa
 	}
 	
+	public void resetOpLoc(Location l, int i){
+		ll.set(i, l);
+	}
+	
 	public Location getLoc(int i) {
 		return ll.get(i);
 	}
@@ -151,6 +159,26 @@ public class Instruction implements Operand{
 	
 	public Location getOutputLoc(){
 		return la;
+	}
+	
+	public int getAssemblyType() {
+		return assemblyType;
+	}
+
+	public void setAssemblyType(int assemblyType) {
+		this.assemblyType = assemblyType;
+	}
+
+	public int getPC() {
+		return PC;
+	}
+
+	public void setPC(int pC) {
+		PC = pC;
+	}
+
+	public int getOpSize() {
+		return ops.size();
 	}
 	
 	public static void genSSA(){
@@ -253,7 +281,43 @@ public class Instruction implements Operand{
 		default			:	return new String("Error Ins");
 		}
 	}
+	
+	public String asmToName(int asmName){
+		switch(asmName){
+		case ADD:	return new String("ADD ");
+		case SUB:	return new String("SUB ");
+		case MUL:	return new String("MUL ");
+		case DIV:	return new String("DIV ");
+		case CMP:	return new String("CMP ");
+		case ADDI:	return new String("ADDI ");
+		case SUBI:	return new String("SUBI ");
+		case MULI:	return new String("MULI ");
+		case DIVI:	return new String("DIVI ");
+		case CMPI:	return new String("CMPI ");
 		
+		case LDW:	return new String("LDW ");
+		case LDX:	return new String("LDX ");
+		case POP:	return new String("POP ");
+		case STW:	return new String("STW ");
+		case STX:	return new String("STX ");
+		case PSH:	return new String("PSH ");
+		case BEQ:	return new String("BEQ ");
+		case BNE:	return new String("BNE ");
+		case BLT:	return new String("BLT ");
+		case BGE:	return new String("BGE ");
+		case BLE:	return new String("BLE ");
+		case BGT:	return new String("BGT ");
+		case BSR:	return new String("BSR ");
+		case JSR:	return new String("JSR ");
+		case RET:	return new String("RET ");
+		case RDD:	return new String("RDD ");
+		case WRD:	return new String("WRD ");
+		case WRH:	return new String("WRH ");
+		case WRL:	return new String("WRL ");
+		default:	return new String("Error asm");
+		}	
+	}
+	
 	protected static final int opScale 	= 0,
 							   opArray  = 1,
 							   opIns 	= 2,
@@ -291,4 +355,41 @@ public class Instruction implements Operand{
 	write			=	31,
 	writeNL			=	32;
 
+	static final int ADD = 0,//ADDI 16
+					 SUB = 1,//SUBI 17
+					 MUL = 2,//MULI 18
+					 DIV = 3,//DIVI 19
+					 CMP = 5,//CMPI 21
+					 
+					 ADDI = 16,
+					 SUBI = 17,
+					 MULI = 18,
+					 DIVI = 19,
+					 CMPI = 21,
+					 
+					 LDW = 32,
+					 LDX = 33,
+					 POP = 34,
+					 STW = 36,
+					 STX = 37,
+					 PSH = 38,
+					 
+					 BEQ = 40,
+					 BNE = 41,
+					 BLT = 42,
+					 BGE = 43,
+					 BLE = 44,
+					 BGT = 45,
+					 
+					 BSR = 46,
+					 JSR = 48,
+					 RET = 49,
+					 
+					 RDD = 50,
+					 WRD = 51,
+					 WRH = 52,
+					 WRL = 53;
+
+
+	
 }

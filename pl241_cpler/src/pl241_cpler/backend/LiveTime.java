@@ -80,7 +80,7 @@ public class LiveTime {
 				ssaIns.setOpSeqId();//when process while, define id need be gotten before actual process this phi 
 				LinkedList<Block> bf = ssaIns.getPhiFrom();
 					for(int i1 = bf.size() - 1; i1>=0; i1--){
-						//TODO how phi get ops without output?
+						// phi for array has no output
 						if(bf.get(i1) == b && ssaIns.getOpsInsId().get(i1)!=null){
 							Integer opd = ins.getOpsInsId().get(i1);
 							live.add(ssaIns.getOpsInsId().get(i1));

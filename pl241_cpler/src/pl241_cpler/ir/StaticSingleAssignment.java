@@ -14,7 +14,8 @@ import java.util.HashSet;
 public class StaticSingleAssignment extends Instruction {
 	
 	public static final int showSSA = 0,
-			 				 showREG = 1;
+			 				showREG = 1,
+			 				showAsm = 2;
 	
 	private static ControlFlowGraph.Block loadSlot = null;
 	private static HashSet<dominatorTree.treeNode> visited = new HashSet<dominatorTree.treeNode>();
@@ -109,6 +110,11 @@ public class StaticSingleAssignment extends Instruction {
 			}else if(ops.get(i)!=null&&ops.get(i).getType()==opIns){
 				Instruction insResult = (Instruction)ops.get(i);
 				ll.set(i, insResult.la);
+			}else if(ops.get(i)!=null){
+				int id = 0;
+				if(ops.get(i).getType() == opConstant)
+					id = ((Constant)ops.get(i)).getValue();
+				ll.set(i, new Location(CON, id));
 			}
 		}
 	}
@@ -245,20 +251,26 @@ public class StaticSingleAssignment extends Instruction {
 	
 	public String regPrint(){
 		String insprint = "";
-		for(int i=0;i<ops.size();i++){
+		if(la != null){
+			insprint+=la.print();
+		}
+		insprint += "\t";
+		int opNum;
+		if(showType == showREG)
+			opNum = ops.size();
+		else
+			opNum = 2;
+		for(int i=0;i<opNum;i++){
 			if(ll.get(i)!=null){
 				insprint+=ll.get(i).print();
-				if(ops.get(i)!=null)
+				if(ops.get(i)!=null&&showType == showREG)
 					insprint+="{"+ssaPrint(ops.get(i), i)+"}";
-			}else{
+			}else if(showType == showREG){
 				Operand o = ops.get(i);
 				if(o!=null)
 					insprint += ssaPrint(o, i);
 			}
 			insprint += "\t";
-		}
-		if(la != null){
-			insprint+="-> "+la.print();
 		}
 		return insprint;
 	}
@@ -273,7 +285,13 @@ public class StaticSingleAssignment extends Instruction {
 			insprint += Integer.toString(outputId)+"\t";
 		else
 			insprint += "\t";
-		insprint+=": " + codeToName(insType);
+		if(PC>=0)
+			insprint += Integer.toString(PC)+"\t";
+		else
+			insprint += "\t";
+		insprint+=": " + codeToName(insType)+"\t";
+		if(showType == showAsm)
+			insprint+="& " + asmToName(assemblyType);
 		insprint +=	"\t";
 		if(showType == showSSA)
 			for(int i = 0; i<ops.size();i++){
@@ -291,8 +309,9 @@ public class StaticSingleAssignment extends Instruction {
 		
 	private static final int 
 							 opScale =  0,
-							 opArray = 	1;
-
+							 opArray = 	1,
+							 opConstant	=	3;
+	private static final int CON = 3;
 	private static final int kill 		= -2;
 	private static final int callerFunc		=	500;
 

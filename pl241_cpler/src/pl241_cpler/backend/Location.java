@@ -13,12 +13,17 @@ public class Location {
 		this.id = id;
 	}
 	
+	public int getLocType(){
+		return type;
+	}
+	
 	public String print(){
 		String lcString = "";
 		switch(type){
-		case REG:	lcString += "REG-";break;
-		case MEM:	lcString += "MEM-";break;
-		case STK:	lcString += "STK-";break;
+		case REG:	lcString += "REG_";break;
+		case MEM:	lcString += "MEM_";break;
+		case STK:	lcString += "STK_";break;
+		case CON:	lcString += "Constant_";break;
 		}
 		lcString += Integer.toString(id);
 		return lcString;
@@ -37,5 +42,6 @@ public class Location {
 	public static final int MAXREG = 8;
 	public static final int REG = 0,//register
 							MEM = 1,//variable
-							STK = 2;//stack
+							STK = 2,//stack
+							CON = 3;//Constant
 }

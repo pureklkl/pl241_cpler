@@ -272,16 +272,16 @@ public class Parser {
 			}
 			cfg.addInsToCurBlock(Instruction.genIns(bra, null, func));
 			cfg.addAndMoveToNextBlock();
+			if(func.getReturnState()){
+				returnVal = Instruction.genIns(load, null, func);
+				cfg.addInsToCurBlock((Instruction)returnVal);
+			}
 			for(VariableSet.variable i : varSet.getGlobalVar().values()){
 				if(i.getType() == opScale || i.getType() == opArray){
 					cfg.addInsToCurBlock(Instruction.genIns(kill, null, i));
 				}
 			}
-			if(func.getReturnState()){
-				returnVal = Instruction.genIns(load, null, func);
-				cfg.addInsToCurBlock((Instruction)returnVal);
-				return returnVal;
-			}
+			return returnVal;
 		}else{
 			showError("identifier expected after function call");
 		}
@@ -396,9 +396,10 @@ public class Parser {
 			}
 			
 			if(token == beginToken){
-				varSet.addAndMoveToNewScope();
 				VariableSet.function func = varSet.new function();
 				func.setName("main", id);
+				varSet.add(mainToken, func);
+				varSet.addAndMoveToNewScope();
 				cfg.resetCurRoute();
 				cfg.addNewFuncBlock(func);
 				next();
@@ -565,6 +566,8 @@ public class Parser {
 			cfg.resetCurRoute();
 			cfg.addNewFuncBlock(func);
 			varSet.addAndMoveToNewScope();
+			func.setVscope(varSet.getCurScope());
+			
 			next();
 			if(token  == openparenToken)
 				formalParam(func);
@@ -589,7 +592,17 @@ public class Parser {
 	}
 	
 	private void endCFG(){
+		cfg.addInsToCurBlock(Instruction.genIns(end, null, null));
 		StaticSingleAssignment.varRename(cfg);
+	}
+	
+	private int getDimLoc(ArrayList<Integer> dimSize, int index){
+		int dimLoc = 1;
+		while(index<dimSize.size()){
+			dimLoc*=dimSize.get(index);
+			index++;
+		}
+		return dimLoc;
 	}
 	
 	private Instruction calArrayLocate(VariableSet.array a, ArrayList<Operand> dimList){
@@ -598,7 +611,7 @@ public class Parser {
 		for(int i = 0; i < dimSize.size(); i++){
 			Operand d = dimList.get(i);
 			if(dimSize.size() != i+1){
-				Constant dS = new Constant(dimSize.get(i+1));
+				Constant dS = new Constant(getDimLoc(dimSize, i+1));
 				Instruction curOffset = Instruction.genIns(mul, d, dS);
 				cfg.addInsToCurBlock(curOffset);
 				if(prevAddr != null){
