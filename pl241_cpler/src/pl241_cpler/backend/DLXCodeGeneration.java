@@ -31,6 +31,7 @@ public class DLXCodeGeneration {
 	private LinkedList<Instruction> braAssign = new LinkedList<Instruction>();
 	int PC = 0;
 	int maxPC = 0;// stack is after maxPC+1
+
 	private Location reg0 = new Location(REG, REG0),
 					 spillREG1 = new Location(REG, SPILLREG1),
 					 spillREG2 = new Location(REG, SPILLREG2),
@@ -441,8 +442,18 @@ public class DLXCodeGeneration {
 			PC+=4;
 		}
 	}
+	private void initialIns(Block b){
+		Instruction initFp = Instruction.genLIR(move, fpREG, new Location(CON, maxPC), fpREG),
+				 	initSp = Instruction.genLIR(move, spREG, new Location(CON, maxPC), spREG);
+		initFp.setPC(0);
+		initSp.setPC(4);
+		processMove(initFp, 0, null);
+		processMove(initSp, 0, null);
+		b.getInsList().add(0, initSp);
+		b.getInsList().add(0, initFp);
+	}
 	private void pcAssign(){
-		PC = 0;
+		PC = startPC;
 		VariableSet.function mainFunc = (function) varSet.getGlobalVar().get(mainToken);
 		for(Block b : cfg.getFuncSet().get(mainFunc))
 			assignBlock(b);
@@ -453,6 +464,8 @@ public class DLXCodeGeneration {
 				}
 		}
 		resolvePC();
+		maxPC = PC+4;//there is a flag after the last instruction
+		initialIns(cfg.getFuncSet().get(mainFunc).getFirst());
 	}
 
 	//TODO test memLayer
@@ -522,6 +535,16 @@ public class DLXCodeGeneration {
 		System.out.println();
 	}
 	
+	public int getMaxPC() {
+		return maxPC;
+	}
+	public void setMaxPC(int maxPC) {
+		this.maxPC = maxPC;
+	}
+	
+	public ControlFlowGraph getCfg() {
+		return cfg;
+	}
 	private static void test(String[] args){
 		Instruction.genSSA();
 		Parser p = new Parser(args[0]);
@@ -568,6 +591,7 @@ public class DLXCodeGeneration {
 					 STK = 2,//stack
 					 CON = 3;//constant
 	static final int CONINSOFF = 16;
+	static final int startPC = 8;//first and second ins is initialize FP and SP register
 	static final int REG0 = 0,
 					 SPILLREG1 = 26,
 					 SPILLREG2 = 27,

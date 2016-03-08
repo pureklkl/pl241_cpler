@@ -37,6 +37,10 @@ public class Location {
 			lr.lc = new Location(STK, stackSlot++);
 	}
 	
+	public int getId() {
+		return id;
+	}
+	
 	public static final int opScale = 0,
 			   				opIns   = 2;
 	public static final int MAXREG = 8;
