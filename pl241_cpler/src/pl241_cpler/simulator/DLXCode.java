@@ -19,7 +19,6 @@ public class DLXCode {
 		maxPC = asm.getMaxPC();
 		cfg = asm.getCfg();
 		binaryCode = new int[maxPC];
-		
 	}
 	public void asmToBinary(){
 		ArrayList<Integer> args = new ArrayList<Integer>();
@@ -42,5 +41,8 @@ public class DLXCode {
 					}
 				}
 		}
+	}
+	public int[] getProgram(){
+		return binaryCode;
 	}
 }

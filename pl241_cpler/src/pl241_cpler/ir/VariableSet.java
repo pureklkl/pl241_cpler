@@ -284,7 +284,8 @@ public class VariableSet {
 		private HashMap<Location, Integer> locToAddr = new HashMap<Location, Integer>();
 		//used REG is only for save the caller's register
 		private Stack<Location> usedSTKREG = new Stack<Location>();
-		int variableSize=0;
+		int variableSize=0;//used as base address for used stacked temporary and stored caller register
+		int stackEnd = 0;//only used for main function used for initialize the sp register
 		
 		public function(variable copyFrom) {
 			// TODO Auto-generated constructor stub
@@ -349,6 +350,10 @@ public class VariableSet {
 			return vscope;
 		}
 
+		public int getStackEnd() {
+			return stackEnd;
+		}
+
 		public int assignVar(int varOffset, int parOffset) {
 			HashMap<Integer, variable> varSet = vscope.varSet;
 			int base = 0;
@@ -380,6 +385,7 @@ public class VariableSet {
 					usedREG.push(l);
 				}
 			}
+			stackEnd = (this.usedSTKREG.size()+offset)*4;
 			for(Location l : usedREG){
 				locToAddr.put(l, (this.usedSTKREG.size()+offset)*4);
 				this.usedSTKREG.push(l);

@@ -443,8 +443,9 @@ public class DLXCodeGeneration {
 		}
 	}
 	private void initialIns(Block b){
+		int spStart = ((VariableSet.function)varSet.getGlobalVar().get(mainToken)).getStackEnd();
 		Instruction initFp = Instruction.genLIR(move, fpREG, new Location(CON, maxPC), fpREG),
-				 	initSp = Instruction.genLIR(move, spREG, new Location(CON, maxPC), spREG);
+				 	initSp = Instruction.genLIR(move, spREG, new Location(CON, maxPC+spStart), spREG);
 		initFp.setPC(0);
 		initSp.setPC(4);
 		processMove(initFp, 0, null);
