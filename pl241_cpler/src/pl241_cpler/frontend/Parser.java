@@ -397,7 +397,7 @@ public class Parser {
 			
 			if(token == beginToken){
 				VariableSet.function func = varSet.new function();
-				func.setName("main", id);
+				func.setName("main", mainToken);
 				varSet.add(mainToken, func);
 				varSet.addAndMoveToNewScope();
 				cfg.resetCurRoute();

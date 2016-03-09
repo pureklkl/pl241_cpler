@@ -89,9 +89,10 @@ public class DLXCodeGeneration {
 			usedSTKREG.add(l);
 	}
 	private int assignLocVar(VariableSet.function func){
-		int varSize = 0;
+		int varSize = localVarOffset;
+		int parOff = func.getReturnState()?parOffset:parOffset+1;//if no return value, parameter can be adjacent to FP
 		if(func.getVscope()!=null){
-			varSize = func.assignVar(localVarOffset, parOffset);
+			varSize = func.assignVar(localVarOffset, parOff);
 		}
 		return varSize;
 	}
@@ -217,7 +218,7 @@ public class DLXCodeGeneration {
 		}else if(ins.getInsType() == load){
 			if(ins.getOp(1)!=null&&ins.getOp(1).getType() == opScale){//load parameter, global variable kill
 				VariableSet.scale s = (VariableSet.scale)ins.getOp(1);
-				resetLSIns(ins, LDX, ins.getOutputLoc(), new Location(CON, s.getAddrOffset()), s.getScopeLevel());
+				resetLSIns(ins, LDW, ins.getOutputLoc(), new Location(CON, s.getAddrOffset()), s.getScopeLevel());
 			}else if(ins.getOpSize()==3&&ins.getOp(2).getType() == opArray){//load array
 				VariableSet.array a = (VariableSet.array)ins.getOp(2);
 				resetLSIns(ins, LDX, ins.getOutputLoc(), ins.getLoc(1), a.getScopeLevel());
@@ -325,7 +326,7 @@ public class DLXCodeGeneration {
 		if(ins.getOp(0)==null&&ins.getOp(1)==null){//return
 			ins.setAssemblyType(RET);
 			ins.resetOpLoc(retAddrREG, 1);
-		}else{//if/while
+		}else{//if/while function call
 			ins.setAssemblyType(JSR);// R.c will be set after PC assign
 			braAssign.add(ins);
 		}
@@ -395,8 +396,112 @@ public class DLXCodeGeneration {
 			}
 		}
 	}
-	private void funCall(){
+	/**
+	 * first block	-	ins1:	save return address by push R31
+	 * 					ins2:	move sp register to fp register, so that fp register is pointed to return address
+	 * 					ins3:	move sp to the end of stack which contains variable and temporary (spilled value)
+	 * 					ins4~:	push working register which will be recovered when return
+	 * 
+	 * @param first	-	first block of the function
+	 * @param func	-	the callee function
+	 */
+	private void assignCalleeInit(Block first, VariableSet.function func){
+		Instruction storeRetAddr = Instruction.genLIR(store, retAddrREG, spREG, stackPUSH);
+		storeRetAddr.setAssemblyType(PSH);
+		first.getInsList().add(0, storeRetAddr);
+		Instruction newFP = Instruction.genLIR(move, fpREG, spREG, reg0);
+		newFP.setAssemblyType(ADD);
+		first.getInsList().add(1, newFP);
+		Instruction moveSp = Instruction.genLIR(add, spREG, spREG, new Location(CON, func.getStackEnd()));
+		moveSp.setAssemblyType(ADD+CONINSOFF);
+		first.getInsList().add(2, moveSp);
+		int index=3;
+		for(Location l:func.getUsedSTKREG()){
+			if(l.type == REG){
+				Instruction pshClrReg = Instruction.genLIR(store, l, spREG, stackPUSH);
+				pshClrReg.setAssemblyType(PSH);
+				first.getInsList().add(index, pshClrReg);
+				index++;
+			}
+		}
+	}
+	/**
+	 * last block	-	ins1~:	pop working register
+	 * 					ins2:	move fp regiter to sp register, so that sp is reseted to pointed to return address
+	 * 					ins3:	pop return address to R31
+	 * @param last	- return ins's block
+	 * @param func	- the callee function
+	 */
+	private void assignCalleeRET(Block last, VariableSet.function func){
+		int endIns = last.getInsList().size()-1;//last ins is RET R31
+		for(int i = func.getUsedSTKREG().size()-1;i>=0;i--){
+			Location l=func.getUsedSTKREG().get(i);
+			if(l.type == REG){
+				Instruction popClrReg = Instruction.genLIR(load, l, spREG, stackPOP);
+				popClrReg.setAssemblyType(POP);
+				last.getInsList().add(endIns, popClrReg);
+				endIns = last.getInsList().size()-1;
+			}
+		}
+		Instruction resetSp = Instruction.genLIR(move, spREG, fpREG, reg0);
+		resetSp.setAssemblyType(ADD);
+		last.getInsList().add(endIns, resetSp);
+		endIns = last.getInsList().size()-1;
+		Instruction loadRetAddr = Instruction.genLIR(load, retAddrREG, spREG, stackPOP);
+		loadRetAddr.setAssemblyType(POP);
+		last.getInsList().add(endIns, loadRetAddr);//now sp is pointed to the old fp
+	}
+	
+	private void assignCaller(Block cur, Block suc, VariableSet.function func){
+		int endIns;
+		if(func.getReturnState()){
+			endIns = cur.getInsList().size()-1;//last ins will be JSR func
+			Instruction retValR = Instruction.genLIR(add, spREG, spREG, new Location(CON, 4));//keep space for return value
+			retValR.setAssemblyType(ADD+CONINSOFF);
+			cur.getInsList().add(endIns, retValR);
+		}
+		Instruction pushFP = Instruction.genLIR(store, fpREG, spREG, stackPUSH);
+		pushFP.setAssemblyType(PSH);
+		endIns = cur.getInsList().size()-1;
+		cur.getInsList().add(endIns, pushFP);//now spREG is pointed to old FP
+
 		
+		Instruction popFp = Instruction.genLIR(load, fpREG, spREG, stackPOP);
+		popFp.setAssemblyType(POP);
+		if(func.paramNum()!=0){
+			Instruction parSp = Instruction.genLIR(sub, spREG, spREG, new Location(CON, func.paramNum()*4));
+			parSp.setAssemblyType(SUB+CONINSOFF);
+			if(suc.getInsList().isEmpty()){
+				suc.getInsList().add(0, parSp);
+			}else{
+				Instruction firstSuc = suc.getInsList().getFirst();
+				if(firstSuc.getInsType()==load&&firstSuc.getOp(1)!=null&&firstSuc.getOp(1).getType()==opFunc){//pop parameters should be after pop return value
+					suc.getInsList().add(1, parSp);
+				}else{
+					suc.getInsList().add(0, parSp);
+				}
+			}
+		}
+		suc.getInsList().add(0, popFp);
+	}
+	
+	private void funCall(){
+		VariableSet.function mainFunc = (function) varSet.getGlobalVar().get(mainToken);
+		for(Map.Entry<VariableSet.function, LinkedList<Block>> e : cfg.getFuncSet().entrySet()){
+			if(e.getKey()!=mainFunc)
+				assignCalleeInit(e.getValue().getFirst(), e.getKey());
+			for(Block b : e.getValue()){
+				for(Instruction ins: b.getInsList()){
+					if(ins.getInsType()==bra&&ins.getOp(1)!=null&&ins.getOp(1).getType()==opFunc){
+						assignCaller(b, b.getSuccessor().getFirst(), (VariableSet.function)ins.getOp(1));
+						break;
+					}else if(ins.getInsType() == bra && ins.getOp(0)==null && ins.getOp(1)==null){
+						assignCalleeRET(b, e.getKey());
+						break;
+					}
+				}
+			}
+		}
 	}
 	
 	private Block findNonEmptyB(Block b, HashSet<Block> visited){
@@ -426,7 +531,10 @@ public class DLXCodeGeneration {
 				Block b = (Block)op1;
 				HashSet<Block> visited = new HashSet<Block>();
 				b = findNonEmptyB(b, visited);
-				jumpTo = new Location(CON, b.getInsList().get(0).getPC());
+				if(ins.getAssemblyType() == JSR)
+					jumpTo = new Location(CON, (b.getInsList().get(0).getPC()));
+				else
+					jumpTo = new Location(CON, ((b.getInsList().get(0).getPC()-ins.getPC())/4));
 				
 			}else{
 				VariableSet.function func = (VariableSet.function)op1;
@@ -465,7 +573,7 @@ public class DLXCodeGeneration {
 				}
 		}
 		resolvePC();
-		maxPC = PC+4;//there is a flag after the last instruction
+		maxPC = PC;//there is a flag after the last instruction
 		initialIns(cfg.getFuncSet().get(mainFunc).getFirst());
 	}
 
@@ -475,7 +583,7 @@ public class DLXCodeGeneration {
 	public void assembleDLX(){
 		memLayer();
 		assembly();
-		//funCall();
+		funCall();
 		pcAssign();
 	}
 	

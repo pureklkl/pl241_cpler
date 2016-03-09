@@ -34,10 +34,10 @@ public class DLXCode {
 					if(lc!=null)
 						args.add(lc.getId());
 					switch(args.size()){
-					case 0:binaryCode[ins.getPC()]=DLX.assemble(ins.getAssemblyType());break;
-					case 1:binaryCode[ins.getPC()]=DLX.assemble(ins.getAssemblyType(), args.get(0));break;
-					case 2:binaryCode[ins.getPC()]=DLX.assemble(ins.getAssemblyType(), args.get(0), args.get(1));break;
-					case 3:binaryCode[ins.getPC()]=DLX.assemble(ins.getAssemblyType(), args.get(0), args.get(1), args.get(2));break;
+					case 0:binaryCode[ins.getPC()/4]=DLX.assemble(ins.getAssemblyType());break;
+					case 1:binaryCode[ins.getPC()/4]=DLX.assemble(ins.getAssemblyType(), args.get(0));break;
+					case 2:binaryCode[ins.getPC()/4]=DLX.assemble(ins.getAssemblyType(), args.get(0), args.get(1));break;
+					case 3:binaryCode[ins.getPC()/4]=DLX.assemble(ins.getAssemblyType(), args.get(0), args.get(1), args.get(2));break;
 					}
 				}
 		}

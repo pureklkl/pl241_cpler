@@ -173,8 +173,10 @@ public class Scanner {
 								  }else{
 								    Integer tmp = identMap.get(st);
 								    if(tmp!=null){
-								    	if(tmp < tokenEnd)
+								    	if(tmp < tokenEnd){
 								    		token = tmp.intValue();
+								    		id = tmp;
+								    	}
 								    	else{
 								    		token = ident;
 								    		id = tmp;

@@ -12,6 +12,7 @@ import pl241_cpler.ir.StaticSingleAssignment;
 import pl241_cpler.ir.VariableSet;
 import pl241_cpler.simulator.DLX;
 import pl241_cpler.simulator.DLXCode;
+import pl241_cpler.simulator.DLXdebuger;
 
 public class CLI {
 	static void run(String[] args) throws IOException{
@@ -39,8 +40,8 @@ public class CLI {
 		
 		int[] program = exe.getProgram();
 		
-		DLX.load(program);
-		DLX.execute();
+		DLXdebuger.load(program);
+		DLXdebuger.debugExecute();
 	}
 	//TODO add compiler options
 	public static void main(String[] args) throws IOException{

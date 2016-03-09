@@ -20,10 +20,10 @@ public class Location {
 	public String print(){
 		String lcString = "";
 		switch(type){
-		case REG:	lcString += "REG_";break;
-		case MEM:	lcString += "MEM_";break;
-		case STK:	lcString += "STK_";break;
-		case CON:	lcString += "Constant_";break;
+		case REG:	lcString += "R";break;
+		case MEM:	lcString += "M";break;
+		case STK:	lcString += "S";break;
+		case CON:	lcString += "#";break;
 		}
 		lcString += Integer.toString(id);
 		return lcString;
