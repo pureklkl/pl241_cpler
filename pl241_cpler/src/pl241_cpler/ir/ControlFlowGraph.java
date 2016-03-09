@@ -256,8 +256,12 @@ public class ControlFlowGraph {
 			this.livedIn = livedIn;
 		}
 		
+		public int getId(){
+			return id;
+		}
+		
 		public String print(){
-			return "Blk-" + Integer.toString(id);
+			return "[" + Integer.toString(id) + "]";
 		}
 	}
 	

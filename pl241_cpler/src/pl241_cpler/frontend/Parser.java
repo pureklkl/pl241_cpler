@@ -339,7 +339,7 @@ public class Parser {
 			StaticSingleAssignment.popPhiToCurBlock(cfg);
 			if(token == odToken){
 				cfg.popCurRoute();
-				cfg.addAndMoveToNextBlock();
+				cfg.addAndMoveToSingleBlock();//the block will be linked by fix bra instruction
 				cfg.fix();//fix bra in while block
 				next();
 			}else{

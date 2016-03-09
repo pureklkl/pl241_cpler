@@ -27,6 +27,11 @@ public class dominatorTree {
 		public LinkedList<treeNode> getChild(){
 			return childs;
 		}
+		
+		public Block getBlock(){
+			return b_;
+		}
+		
 		Block b_;
 		LinkedList<treeNode> childs;
 		treeNode parent;
@@ -156,6 +161,10 @@ public class dominatorTree {
 	
 	public HashMap<Block, HashSet<Block>> getRDSet(){
 		return rdoSet;
+	}
+	
+	public LinkedList<treeNode> getNodeList(){
+		return nodeList;
 	}
 	
 	private treeNode root;

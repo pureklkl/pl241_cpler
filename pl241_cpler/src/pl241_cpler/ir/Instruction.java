@@ -231,6 +231,11 @@ public class Instruction implements Operand{
 		return copyIns;
 	}
 	
+	//override by ssa
+	public String printVcg(){
+		return null;
+	}
+	
 	public String print(){
 		String insprint = Integer.toString(id)+"\t";
 		if(seqId>=0)

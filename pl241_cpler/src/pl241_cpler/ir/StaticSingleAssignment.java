@@ -275,6 +275,18 @@ public class StaticSingleAssignment extends Instruction {
 		return insprint;
 	}
 	
+	@Override
+	public String printVcg(){
+		String insprint = Integer.toString(id)+" : ";
+		insprint+=codeToName(insType)+" ";
+		for(int i = 0; i<ops.size();i++){
+			Operand o = ops.get(i);
+			if(o != null)
+					insprint += ssaPrint(o, i)+" ";
+		}
+		return insprint;
+	}
+	
 	public String print(){
 		String insprint = Integer.toString(id)+"\t";
 		if(seqId>=0)
