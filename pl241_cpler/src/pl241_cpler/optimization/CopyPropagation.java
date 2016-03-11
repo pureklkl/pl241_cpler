@@ -84,6 +84,18 @@ public class CopyPropagation {
 		}
 	}
 	
+	public static void main(String[] args){
+		Instruction.genSSA();
+		Parser p = new Parser(args[0]);
+		p.startParse();
+		p.getCFG().print();
+		
+		System.out.println("Copy Propagation!!!");
+		
+		CopyPropagation g = new CopyPropagation(p);
+		g.runCP();
+		p.getCFG().print();
+	}
 	/**
 	public void RunCP(){
 		for(VariableSet.variableScope gS : varSet.getScopeList()){ // get global variable scope
