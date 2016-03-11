@@ -48,6 +48,12 @@ public class DLXCodeGeneration {
 		this.varSet = varSet;
 		this.cfg = cfg;
 	}
+	
+	public void setSpillRegister(Location sp1, Location sp2){
+		sp1.id = SPILLREG1;
+		sp2.id = SPILLREG2;
+	}
+	
 	/**
 	 * R[30] = MemSize - 1; heap
 	 * R[a] = M[(R[b]+c) / 4]; memory address is in byte type
@@ -122,14 +128,14 @@ public class DLXCodeGeneration {
 	//Maybe memory to memory move for phi resolution
 	//Store load for spilled register
 	private int calConstant(Instruction ins){
-		Constant op0 = (Constant)ins.getOp(0), op1 = (Constant)ins.getOp(1);
+		int op0 = ins.getLoc(0).getId(), op1 = ins.getLoc(1).getId();
 		switch(ins.getInsType()){
 		case adda:
-		case add:	return op0.getValue()+op1.getValue();
-		case sub:	return op0.getValue()-op1.getValue();
-		case mul:	return op0.getValue()*op1.getValue();
-		case div:	return op0.getValue()/op1.getValue();
-		case cmp:   return (int) Math.signum(op0.getValue()-op1.getValue());
+		case add:	return op0+op1;
+		case sub:	return op0-op1;
+		case mul:	return op0*op1;
+		case div:	return op0/op1;
+		case cmp:   return (int) Math.signum(op0-op1);
 		default: return 0;
 		}
 	}
@@ -184,7 +190,13 @@ public class DLXCodeGeneration {
 		ins.resetOpLoc(b, 0);
 		ins.resetOpLoc(c, 1);
 	}
-	
+	/**
+	 * move constant to spill reg2
+	 * 
+	 * @param con
+	 * @param index
+	 * @param insList
+	 */
 	private void conToReg(Location con, int index, LinkedList<Instruction> insList){
 		Instruction toReg = Instruction.genLIR(add, spillREG2, reg0, con);
 		toReg.setAssemblyType(ADD+CONINSOFF);
@@ -251,8 +263,15 @@ public class DLXCodeGeneration {
 			resetLSIns(ins, LDW, l1, new Location(CON,  v.getAddrOffset()), v.getScopeLevel());
 		}else if(l0.type == STK&&l1.type == REG){
 			resetIns(ins, LDW, l1, fpREG, new Location(CON, curFunc.findLoc(l0)));
+		}else if(l0.type == CON && l1.type == MEM){
+			conToReg(l0, index, insList);
+			VariableSet.variable v = varSet.findById(l1.getId());
+			resetLSIns(ins, STW, spillREG2, new Location(CON, v.getAddrOffset()), v.getScopeLevel());
+		}else if(l0.type == CON && l1.type == STK){
+			conToReg(l0, index, insList);
+			resetIns(ins, STW, spillREG2, fpREG, new Location(CON, curFunc.findLoc(l1)));
 		}else if((l0.type == STK||l0.type == MEM)&&(l1.type == STK||l1.type == MEM)){
-			ins.resetOpLoc(spillREG1, 1);
+			ins.resetOpLoc(spillREG1, 1);//sp2 is used to unlock circular move, so that we can only use sp1 to spill the mem to mem move
 			processSpill(ins, index, insList);//it will issue load l0 to spillREG1 and store spillREG1 to l1
 			insList.remove(ins);
 		}
@@ -655,6 +674,7 @@ public class DLXCodeGeneration {
 		return cfg;
 	}
 	private static void test(String[] args){
+		int maxReg = 8;
 		Instruction.genSSA();
 		Parser p = new Parser(args[0]);
 		p.startParse();
@@ -662,12 +682,14 @@ public class DLXCodeGeneration {
 		VariableSet varSet = p.getVarSet();
 		LiveTime lt = new LiveTime(cfg);
 		lt.analysisLiveTime();
-		LinearScan allocator = new LinearScan(lt.getLr());
+		LinearScan allocator = new LinearScan(lt.getLr(), maxReg);
 		allocator.allocate();
 		StaticSingleAssignment.setShowType(StaticSingleAssignment.showREG);
 		allocator.regAllocate(cfg);
 		cfg.print();
 		DLXCodeGeneration codeGen = new DLXCodeGeneration(varSet, cfg);
+		LinkedList<Location> lsp = allocator.getSp1Sp2();
+		codeGen.setSpillRegister(lsp.get(0), lsp.get(1));
 		codeGen.assembleDLX();
 		StaticSingleAssignment.setShowType(StaticSingleAssignment.showAsm);
 		

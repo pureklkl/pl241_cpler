@@ -17,17 +17,27 @@ import pl241_cpler.ir.StaticSingleAssignment;
 
 public class LinearScan {
 	//TODO add cost function
+	int MAXREG;
 	PriorityQueue<liveReg> preSpill = new PriorityQueue<liveReg>(new costCmp());//sorted by cost, now is the liveRange.last liveInternal.to,same to activeSet except use different comparator
 	PriorityQueue<liveReg> activeSet = new PriorityQueue<liveReg>(new liveEndCmp());//sorted by allocateTo.to (end of live internal)
 	PriorityQueue<liveReg> sortedReg = new PriorityQueue<liveReg>(new liveUntilCmp());//sorted by live until
 	PriorityQueue<liveInternal> sortedLR = new PriorityQueue<liveInternal>(new liveBeginCmp());//sorted by liveInternal.from
 	LinkedList<liveRange> lr;
-	Location p1 = new Location(REG, MAXREG-1), p2 = new Location(REG, MAXREG);//preserved register for spill, move resolution etc.. 
-	
+	Location p1, p2;//preserved register for spill, move resolution etc.. 
 	boolean debug = true;
 	
-	public LinearScan(LinkedList<liveRange> lr){
+	//auto preserve 2 spill register
+	public LinearScan(LinkedList<liveRange> lr, int MAXREG){
 		this.lr = lr;
+		this.MAXREG = MAXREG;
+		p1 = new Location(REG, MAXREG-1);
+		p2 = new Location(REG, MAXREG);
+	}
+	
+	public LinkedList<Location> getSp1Sp2(){
+		LinkedList<Location> l1 = new LinkedList<Location>();
+		l1.add(p1);l1.add(p2);
+		return l1;
 	}
 	
 	//register is from 1 -> max-2, preserve last two for spill
@@ -152,6 +162,7 @@ public class LinearScan {
 			return Instruction.genLIR(move, to, cpy.constfrom, to);
 	}
 	
+	//p2 is used to unlock the circular move
 	private LinkedList<Instruction> orderMove(LinkedList<phiMap> mapList){
 		LinkedList<Instruction> om = new LinkedList<Instruction>();
 		while(!mapList.isEmpty()){
@@ -191,10 +202,11 @@ public class LinearScan {
 				StaticSingleAssignment ssaIns = (StaticSingleAssignment)phiInsList.get(i);
 				LinkedList<Block> bf = ssaIns.getPhiFrom();
 				for(int i1 = bf.size() - 1; i1>=0; i1--){
-					if(bf.get(i1) == b && ssaIns.getOpsInsId().get(i1)!=null){
-						if(ssaIns.getLoc(i1)==null)//means constant
-							mapList.add(new phiMap(ssaIns.getOp(i1), ssaIns.getOutputLoc()));
-						else if(ssaIns.getLoc(i1)!=ssaIns.getOutputLoc())
+					if(bf.get(i1) == b && (ssaIns.getOpsInsId().get(i1)!=null||ssaIns.getOp(i1).getType() == opConstant)){
+//						if(ssaIns.getLoc(i1)==null)//means constant
+//							mapList.add(new phiMap(ssaIns.getOp(i1), ssaIns.getOutputLoc()));
+//						else 
+						if(ssaIns.getLoc(i1)!=ssaIns.getOutputLoc())
 							mapList.add(new phiMap(ssaIns.getLoc(i1), ssaIns.getOutputLoc()));
 					}
 				}
@@ -224,6 +236,7 @@ public class LinearScan {
 	}
 	
 	public static void main(String[] args){
+		int maxReg = 8;
 		Instruction.genSSA();
 		Parser p = new Parser(args[0]);
 		p.startParse();
@@ -233,7 +246,7 @@ public class LinearScan {
 		lt.analysisLiveTime();
 		System.out.println();
 		lt.print();
-		LinearScan allocator = new LinearScan(lt.getLr());
+		LinearScan allocator = new LinearScan(lt.getLr(), maxReg);
 		allocator.allocate();
 		StaticSingleAssignment.setShowType(StaticSingleAssignment.showREG);
 		System.out.println();
@@ -329,8 +342,8 @@ public class LinearScan {
 		}
 	}
 	
+	static final int opConstant		=	3;
 	static final int move	=	43;
-	static final int MAXREG = Location.MAXREG;
 	static final int bra = 46, 
 			         phi = 44;
 	public static final int REG = Location.REG,//register

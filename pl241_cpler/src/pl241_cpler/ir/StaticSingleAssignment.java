@@ -114,7 +114,7 @@ public class StaticSingleAssignment extends Instruction {
 				int id = 0;
 				if(ops.get(i).getType() == opConstant)
 					id = ((Constant)ops.get(i)).getValue();
-				ll.set(i, new Location(CON, id));
+				ll.set(i, new Location(CON, id));//maybe constant, function, block... only constant can get id from there
 			}
 		}
 	}

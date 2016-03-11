@@ -129,37 +129,29 @@ public class Parser {
 	//term = factor { (“*” | “/”) factor}.
 	private Operand term(){
 		Operand x = factor();
-		Operand res = null;
 		while(token == timesToken || token == divToken){
 			//Auto map by token - instruction
 			int arthOp = token;
 			next();
 			Operand y = factor();
-			res = Instruction.genIns(arthOp, x, y);
-			cfg.addInsToCurBlock((Instruction)res);
+			x = Instruction.genIns(arthOp, x, y);
+			cfg.addInsToCurBlock((Instruction)x);
 		}
-		if(res == null)
-			return x;
-		else
-			return res;
+		return x;
 	}
 	
 	//expression = term {(“+” | “-”) term}.
 	private Operand expression(){
 		Operand x = term();
-		Operand res = null;
 		while(token == plusToken || token == minusToken){
 			//Auto map by token - instruction
 			int arthOp = token;
 			next();
 			Operand y = term();
-			res = Instruction.genIns(arthOp, x, y);
-			cfg.addInsToCurBlock((Instruction)res);
+			x = Instruction.genIns(arthOp, x, y);
+			cfg.addInsToCurBlock((Instruction)x);
 		}
-		if(res == null)
-			return x;
-		else
-			return res;
+		return x;
 	}
 	
 	//relation = expression relOp expression.
@@ -671,17 +663,6 @@ public class Parser {
 			System.out.println(e.getKey().print());
 			e.getValue().printRSet();
 			e.getValue().printTree();
-		}
-		
-		VariableSet varSet = p.getVarSet();// get variable set
-		VariableSet.variableScope gS = varSet.getGlobalScope(); // get global variable scope 
-		gS.getChildScope();//get function variable scope
-		for(VariableSet.variable v : gS.getVarSet().values()){// get variable - check type!
-			DefUseChain vdu = v.getDU();//get variable's def-use chain
-			for(DefUseChain.chainNode cn : vdu.getDefChian()){
-				cn.getIns();// get def
-				cn.getUsedIns();// get used ins
-			}
 		}
 	}
 	

@@ -253,6 +253,7 @@ public class LiveTime {
 						}
 					}
 					liList.getFirst().to = lastTo;
+					liList.getFirst().index = liList.size()-1;
 				}
 				else if(liList.getFirst().from > to+1){
 					liList.add(0, new liveInternal(from, to, this, liList.size()));
