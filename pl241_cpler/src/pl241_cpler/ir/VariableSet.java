@@ -83,6 +83,10 @@ public class VariableSet {
 		return curScope;
 	}
 
+	public LinkedList<variableScope> getScopeList() {
+		return scopeList;
+	}
+
 	//???? make sure the variable id
 	public boolean add(int identId, variable var){
 		if(curScope.varSet.containsKey(identId)){

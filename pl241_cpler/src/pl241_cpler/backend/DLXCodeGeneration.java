@@ -15,6 +15,7 @@ import pl241_cpler.ir.VariableSet;
 import pl241_cpler.ir.VariableSet.function;
 import pl241_cpler.ir.VariableSet.variable;
 import pl241_cpler.ir.VariableSet.variableScope;
+import pl241_cpler.optimization.CopyPropagation;
 
 public class DLXCodeGeneration {
 	//TODO Memory layout
@@ -210,11 +211,13 @@ public class DLXCodeGeneration {
 				resetIns(ins, PSH, ins.getLoc(0), spREG, stackPUSH);
 			}else if(ins.getOp(1)!=null&&ins.getOp(1).getType() == opArray){//store array
 				VariableSet.array a = (VariableSet.array)ins.getOp(1);
-				resetLSIns(ins, STX, ins.getLoc(0), ins.getLoc(2), a.getScopeLevel());
+				resetLSIns(ins, STW, ins.getLoc(0), ins.getLoc(2), a.getScopeLevel());
 			}else if(ins.getOp(1)!=null&&ins.getOp(1).getType() == opFunc){//store return value
 				resetIns(ins, STW, ins.getLoc(0), fpREG, returnOFF);
 			}else if(ins.getOp(0)!=null&&ins.getOp(0).getType()==opScale&&ins.getOp(1)==null){//global variable kill
 				resetIns(ins, STW, ins.getLoc(0), heapBaseREG, new Location(CON, ((VariableSet.scale)ins.getOp(0)).getAddrOffset()));
+			}else if(ins.getRetainVar()!=null){
+				resetLSIns(ins, STW, ins.getLoc(0), new Location(CON,ins.getRetainVar().getAddrOffset()), ins.getRetainVar().getScopeLevel());
 			}else if(ins.getLoc(0)==spillREG1){//spill
 				if(ins.getOutputLoc().getLocType() == STK){
 					resetIns(ins, STW, ins.getLoc(0), fpREG, new Location(CON,curFunc.findLoc(ins.getOutputLoc())));
@@ -605,6 +608,17 @@ public class DLXCodeGeneration {
 		funCall();
 		pcAssign();
 	}
+		
+	public int getMaxPC() {
+		return maxPC;
+	}
+	public void setMaxPC(int maxPC) {
+		this.maxPC = maxPC;
+	}
+	
+	public ControlFlowGraph getCfg() {
+		return cfg;
+	}
 	
 	private static void testIns(){
 		Instruction.genSSA();
@@ -663,16 +677,6 @@ public class DLXCodeGeneration {
 		System.out.println();
 	}
 	
-	public int getMaxPC() {
-		return maxPC;
-	}
-	public void setMaxPC(int maxPC) {
-		this.maxPC = maxPC;
-	}
-	
-	public ControlFlowGraph getCfg() {
-		return cfg;
-	}
 	private static void test(String[] args){
 		int maxReg = 8;
 		Instruction.genSSA();
@@ -697,8 +701,41 @@ public class DLXCodeGeneration {
 		cfg.print();
 	}
 	
+	static void testCP(String[] args){
+		int maxReg = 8;
+		Instruction.genSSA();
+		Parser p = new Parser(args[0]);
+		p.startParse();
+		p.getCFG().print();
+		
+		System.out.println("Copy Propagation!!!");
+		
+		CopyPropagation g = new CopyPropagation(p);
+		g.runCP();
+		p.getCFG().print();
+		
+		ControlFlowGraph cfg = p.getCFG();
+		VariableSet varSet = p.getVarSet();
+		LiveTime lt = new LiveTime(cfg);
+		lt.analysisLiveTime();
+		LinearScan allocator = new LinearScan(lt.getLr(), maxReg);
+		allocator.allocate();
+		StaticSingleAssignment.setShowType(StaticSingleAssignment.showREG);
+		allocator.regAllocate(cfg);
+		cfg.print();
+		DLXCodeGeneration codeGen = new DLXCodeGeneration(varSet, cfg);
+		LinkedList<Location> lsp = allocator.getSp1Sp2();
+		codeGen.setSpillRegister(lsp.get(0), lsp.get(1));
+		codeGen.assembleDLX();
+		StaticSingleAssignment.setShowType(StaticSingleAssignment.showAsm);
+		
+		varSet.printLayout();
+		cfg.print();
+		
+	}
+	
 	public static void main(String[] args){
-		test(args);
+		testCP(args);
 	}
 	
 	static final int mainToken		=	200;

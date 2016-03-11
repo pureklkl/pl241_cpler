@@ -26,6 +26,8 @@ public class StaticSingleAssignment extends Instruction {
 	
 	private static int showType = showSSA;
 	
+	private static boolean addIns = false;
+	
 	public StaticSingleAssignment(int insType_, Operand o1, Operand o2){
 		super(insType_, o1, o2);
 		if(insType_ == phi){
@@ -101,6 +103,10 @@ public class StaticSingleAssignment extends Instruction {
 		}
 	}
 	
+	public LinkedList<Instruction> getVersion() {
+		return version;
+	}
+
 	@Override
 	public void setOpLoc(){
 		for(int i = version.size()-1; i>=0; i--){
@@ -116,7 +122,7 @@ public class StaticSingleAssignment extends Instruction {
 					id = ((Constant)ops.get(i)).getValue();
 				ll.set(i, new Location(CON, id));//maybe constant, function, block... only constant can get id from there
 			}
-		}
+		}	
 	}
 		
 	public LinkedList<Block> getPhiFrom() {
@@ -143,6 +149,8 @@ public class StaticSingleAssignment extends Instruction {
 			odu.addDef(initialLoad, rdoSet);
 			((StaticSingleAssignment)initialLoad).version.set(1, initialLoad);
 			def = odu.getDef(locate, rdoSet);
+			if(locate == loadSlot)
+				addIns = true;
 		}
 		if(def.getIns().getInsType() == kill){
 			def.getIns().setInsType(load);
@@ -187,6 +195,9 @@ public class StaticSingleAssignment extends Instruction {
 								continue;
 							}
 							chainNode def = prepareDef(i.locate, var, rdoSet);
+							if(addIns){
+								iI++;addIns = false;//if we add a load to current block, we should synchronize the index
+							}
 							setDU(def, i, oi);
 						}
 					}

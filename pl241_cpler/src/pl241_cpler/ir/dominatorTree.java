@@ -12,31 +12,13 @@ import pl241_cpler.ir.ControlFlowGraph.Block;;
 
 public class dominatorTree {
 
-	public class treeNode{
-		public treeNode(Block b){
-			b_ = b;
-			nodeList.add(this);
-		}
-		public void addChild(Block c){
-			if(childs == null)
-				childs = new LinkedList<treeNode>();
-			treeNode newC = new treeNode(c);
-			newC.parent = this;
-			childs.add(newC);
-		}
-		public LinkedList<treeNode> getChild(){
-			return childs;
-		}
+	private treeNode root;
+	private LinkedList<treeNode> nodeList = new LinkedList<treeNode>();
+	private HashMap<Block, HashSet<Block>> rdoSet =  new HashMap<Block, HashSet<Block>>();
+	private HashMap<Block, HashSet<Block>> doSet = new HashMap<Block, HashSet<Block>>();
+	private HashSet<Block> visited = new HashSet<Block>();
+	private LinkedList<Block> bList_;
 		
-		public Block getBlock(){
-			return b_;
-		}
-		
-		Block b_;
-		LinkedList<treeNode> childs;
-		treeNode parent;
-	}
-	
 	public dominatorTree(LinkedList<Block> bList){
 		bList_ = bList;
 		treeGenerator();
@@ -167,13 +149,12 @@ public class dominatorTree {
 		return nodeList;
 	}
 	
-	private treeNode root;
-	private LinkedList<treeNode> nodeList = new LinkedList<treeNode>();
-	private HashMap<Block, HashSet<Block>> rdoSet =  new HashMap<Block, HashSet<Block>>();
-	private HashMap<Block, HashSet<Block>> doSet = new HashMap<Block, HashSet<Block>>();
-	private HashSet<Block> visited = new HashSet<Block>();
-	private LinkedList<Block> bList_;
+
 	
+	public treeNode getRoot() {
+		return root;
+	}
+
 	public static void main(String[] args){
 		Instruction.genSSA();
 		Parser p = new Parser(args[0]);
@@ -186,5 +167,30 @@ public class dominatorTree {
 			t.printRSet();
 			t.printTree();
 		}
+	}
+	
+	public class treeNode{
+		public treeNode(Block b){
+			b_ = b;
+			nodeList.add(this);
+		}
+		public void addChild(Block c){
+			if(childs == null)
+				childs = new LinkedList<treeNode>();
+			treeNode newC = new treeNode(c);
+			newC.parent = this;
+			childs.add(newC);
+		}
+		public LinkedList<treeNode> getChild(){
+			return childs;
+		}
+		
+		public Block getBlock(){
+			return b_;
+		}
+		
+		Block b_;
+		LinkedList<treeNode> childs;
+		treeNode parent;
 	}
 }

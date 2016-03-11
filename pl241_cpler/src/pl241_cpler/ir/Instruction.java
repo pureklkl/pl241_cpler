@@ -6,6 +6,7 @@ import java.util.LinkedList;
 
 import pl241_cpler.backend.Location;
 import pl241_cpler.ir.ControlFlowGraph.Block;
+import pl241_cpler.ir.VariableSet.variable;
 
 public class Instruction implements Operand{
 	
@@ -35,6 +36,10 @@ public class Instruction implements Operand{
 	//code generation
 	protected int assemblyType;
 	protected int PC = -1;
+	
+	//copy propagation
+	protected variable retainVar = null;
+	protected Location retainAddr = null;
 	
 	public Instruction(int insType_, Operand o1, Operand o2){
 		ops = new ArrayList<Operand>();
@@ -157,6 +162,10 @@ public class Instruction implements Operand{
 		return ops.get(i);
 	}
 	
+	public ArrayList<Operand> getOps() {
+		return ops;
+	}
+
 	public Location getOutputLoc(){
 		return la;
 	}
@@ -222,6 +231,14 @@ public class Instruction implements Operand{
 	//set first parameter to be o, used for fix bra which used for if/while statement
 	public void fix(Operand o){
 		ops.set(1, o);
+	}
+	
+	public variable getRetainVar() {
+		return retainVar;
+	}
+
+	public void setRetainAddr(){
+		retainVar = (variable) ops.get(0);
 	}
 	
 	public Instruction deepCopy(HashMap<Operand, Operand> opMap, HashMap<Block, Block> bMap){
