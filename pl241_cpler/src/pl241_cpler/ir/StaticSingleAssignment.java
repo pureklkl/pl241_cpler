@@ -8,6 +8,7 @@ import pl241_cpler.ir.ControlFlowGraph.Block;
 import pl241_cpler.ir.VariableSet.variable;
 import pl241_cpler.ir.DefUseChain.chainNode;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -27,6 +28,8 @@ public class StaticSingleAssignment extends Instruction {
 	private static int showType = showSSA;
 	
 	private static boolean addIns = false;
+	
+	private StaticSingleAssignment cseLinke = null;
 	
 	public StaticSingleAssignment(int insType_, Operand o1, Operand o2){
 		super(insType_, o1, o2);
@@ -125,6 +128,14 @@ public class StaticSingleAssignment extends Instruction {
 		}	
 	}
 		
+	public StaticSingleAssignment getCseLinke() {
+		return cseLinke;
+	}
+
+	public void setCseLinke(StaticSingleAssignment cseLinke) {
+		this.cseLinke = cseLinke;
+	}
+
 	public LinkedList<Block> getPhiFrom() {
 		return phiFrom;
 	}
@@ -167,6 +178,8 @@ public class StaticSingleAssignment extends Instruction {
 					VariableSet.variable var =  (VariableSet.variable)o;
 					if(ssaPhi.version.get(oi)==null){
 						chainNode def = prepareDef(locate, var, rdoSet);
+						if(addIns)
+							addIns = false;//phi function cannot be in the first block
 						setDU(def, i1, oi);
 						ssaPhi.phiFrom.set(oi, locate);
 						break;
@@ -329,7 +342,36 @@ public class StaticSingleAssignment extends Instruction {
 		}
 		return insprint;
 	}
-		
+	
+	public boolean cseEqual(StaticSingleAssignment arg0){
+		if(arg0.ops.size()!=this.ops.size()||arg0.insType!=this.insType)
+			return false;
+		else{
+			for(int i=0; i<ops.size();i++){
+				if((ops.get(i)==null&&arg0.ops.get(i)!=null)||(ops.get(i)!=null&&arg0.ops.get(i)==null))
+					return false;
+				if(ops.get(i)==null&&arg0.ops.get(i)==null)
+					continue;
+				if(version.get(i)==arg0.version.get(i)&&ops.get(i).getType()==arg0.ops.get(i).getType()){
+					if(version.get(i)==null){
+						if(ops.get(i).getType() == opConstant){
+							int val = ((Constant)ops.get(i)).getValue(),
+								valarg = ((Constant)arg0.ops.get(i)).getValue();
+							if(val!=valarg)
+								return false;
+						}else if(ops.get(i).getType() == opIns){
+							if(ops.get(i)!=arg0.ops.get(i))
+								return false;
+						}
+					}
+				}else{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
 	private static final int 
 							 opScale =  0,
 							 opArray = 	1,
