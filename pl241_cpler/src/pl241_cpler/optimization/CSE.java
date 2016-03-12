@@ -90,6 +90,7 @@ public class CSE {
 		HashSet<treeNode> visited = new HashSet<treeNode>();
 		for(dominatorTree t : cfg.getFuncDTree().values()){
 			visited.clear();
+			firstAppear.clear();
 			dfs(t.getRoot(),visited);
 		}
 	}

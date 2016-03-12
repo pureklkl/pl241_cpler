@@ -12,6 +12,8 @@ import pl241_cpler.ir.ControlFlowGraph;
 import pl241_cpler.ir.Instruction;
 import pl241_cpler.ir.StaticSingleAssignment;
 import pl241_cpler.ir.VariableSet;
+import pl241_cpler.optimization.CSE;
+import pl241_cpler.optimization.CopyPropagation;
 import pl241_cpler.simulator.DLX;
 import pl241_cpler.simulator.DLXCode;
 import pl241_cpler.simulator.DLXdebuger;
@@ -23,6 +25,15 @@ public class CLI {
 		p.startParse();
 		ControlFlowGraph cfg = p.getCFG();
 		VariableSet varSet = p.getVarSet();
+		
+		//CopyPropagation g = new CopyPropagation(p);
+		//g.runCP();
+		//p.getCFG().print();
+		
+		CSE cse = new CSE(p.getCFG());
+		cse.runCSE();
+		p.getCFG().print();
+		
 		LiveTime lt = new LiveTime(cfg);
 		lt.analysisLiveTime();
 		int maxReg = 8;

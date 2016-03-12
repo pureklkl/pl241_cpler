@@ -208,6 +208,7 @@ public class Parser {
 			}
 			else{
 				func = (VariableSet.function)funcCheck;
+				//TODO It seems wrong, each function should only store its own assigned global variable
 				//if not recursive, copy called function's used global variable to current function
 				if(func != cfg.curFunc()&&!(isDefaultFunc(funcId))){
 					cfg.curFunc().addGV(func.getUsedGV());

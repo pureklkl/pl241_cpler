@@ -212,7 +212,7 @@ public class DLXdebuger extends DLX {
                 System.out.println();
                 PC = nextPC;
             }
-
+        	System.out.println("Over!!");
         }
         catch (java.lang.ArrayIndexOutOfBoundsException e ) {
             System.out.println( "failed at " + PC*4 + ",   "  + disassemble( M[PC] ) );

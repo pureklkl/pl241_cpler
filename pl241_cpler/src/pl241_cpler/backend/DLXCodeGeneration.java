@@ -211,7 +211,7 @@ public class DLXCodeGeneration {
 				resetIns(ins, PSH, ins.getLoc(0), spREG, stackPUSH);
 			}else if(ins.getOp(1)!=null&&ins.getOp(1).getType() == opArray){//store array
 				VariableSet.array a = (VariableSet.array)ins.getOp(1);
-				resetLSIns(ins, STW, ins.getLoc(0), ins.getLoc(2), a.getScopeLevel());
+				resetLSIns(ins, STX, ins.getLoc(0), ins.getLoc(2), a.getScopeLevel());
 			}else if(ins.getOp(1)!=null&&ins.getOp(1).getType() == opFunc){//store return value
 				resetIns(ins, STW, ins.getLoc(0), fpREG, returnOFF);
 			}else if(ins.getOp(0)!=null&&ins.getOp(0).getType()==opScale&&ins.getOp(1)==null){//global variable kill
