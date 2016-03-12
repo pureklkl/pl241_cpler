@@ -1,5 +1,6 @@
 package pl241_cpler.ir;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -16,6 +17,8 @@ public class VCGCreator {
 	ControlFlowGraph cfg;
 	PrintWriter writer;
 	
+	boolean printREG = false;
+	
 	public VCGCreator(String sourceName, ControlFlowGraph cfg){
 		String[] sp = sourceName.split("[\\/.]");
 		this.sourceName = sp[sp.length-2];
@@ -26,6 +29,13 @@ public class VCGCreator {
 		String[] sp = sourceName.split("[\\/.]");
 		this.sourceName = sp[sp.length-2]+addedName;
 		this.cfg = cfg;
+	}
+	
+	public VCGCreator(String sourceName, ControlFlowGraph cfg, boolean printREG){
+		String[] sp = sourceName.split("[\\/.]");
+		this.sourceName = sp[sp.length-2]+"REG";
+		this.cfg = cfg;
+		this.printREG = true;
 	}
 	
 	private void printEdge(int from, int to){
@@ -40,6 +50,12 @@ public class VCGCreator {
         writer.println("title: \"" + b.getId() + "\"");
         writer.println("label: \"" + b.getId() + "[");
         for(Instruction ins:b.getInsList()){
+        	if(printREG){
+        		if(ins.getType()!=phi){
+        			writer.println(((StaticSingleAssignment)ins).regPrint());
+        		}	
+        	}
+        	else
         	 writer.println(ins.printVcg());
         }
         writer.println("]\"");
@@ -86,6 +102,8 @@ public class VCGCreator {
 	}
 	
 	public void run() throws IOException{
+		File vcgFolder = new File("vcg/");
+		vcgFolder.mkdirs();
         writer = new PrintWriter(new FileWriter("vcg/" + sourceName + ".vcg"));
         printCFG();
         writer.close();
@@ -105,4 +123,6 @@ public class VCGCreator {
 		VCGCreator vcg = new VCGCreator(args[0], cfg);
 		vcg.run();
 	}
+	
+	static final int phi				=	44;
 }
