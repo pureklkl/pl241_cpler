@@ -29,6 +29,23 @@ public class CSE {
 		return null;
 	}
 	
+	private void processPhi(Block b){
+		LinkedList<Instruction> bList = b.getInsList();
+		for(int i=0; i<bList.size();i++){
+			StaticSingleAssignment ssaIns = (StaticSingleAssignment)bList.get(i);
+			if(ssaIns.getInsType() == phi){
+				for(int i1=0;i1<ssaIns.getOps().size();i1++){
+					if(ssaIns.getOp(i1)!=null&&ssaIns.getOp(i1).getType()==opIns){
+						StaticSingleAssignment ssaOp = (StaticSingleAssignment)ssaIns.getOp(i1);
+						if(ssaOp.getCseLinke()!=null){
+							ssaIns.getOps().set(i1, ssaOp.getCseLinke());
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	private void processBlock(Block b){
 		LinkedList<Instruction> bList = b.getInsList();
 		for(int i=0; i<bList.size();i++){
@@ -52,6 +69,10 @@ public class CSE {
 				}
 			}
 		}
+		if(b.getSuccessor()!=null)
+			for(Block s:b.getSuccessor()){
+				processPhi(s);
+			}
 	}
 	
 	private void popFirst(Block b){
@@ -82,8 +103,7 @@ public class CSE {
 		int insType = ins.getInsType();
 		return insType == neg	|| insType == add	|| insType == sub	|| insType == mul	|| insType == div	||
 			   insType == cmp	|| 
-			   insType == adda	|| insType == load ||
-			   (insType == phi	&& !ins.isArray());// phi for array has no output
+			   insType == adda	|| insType == load;
 	}
 	
 	public void runCSE(){

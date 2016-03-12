@@ -26,9 +26,9 @@ public class CLI {
 		ControlFlowGraph cfg = p.getCFG();
 		VariableSet varSet = p.getVarSet();
 		
-		//CopyPropagation g = new CopyPropagation(p);
-		//g.runCP();
-		//p.getCFG().print();
+		CopyPropagation g = new CopyPropagation(p);
+		g.runCP();
+		p.getCFG().print();
 		
 		CSE cse = new CSE(p.getCFG());
 		cse.runCSE();
