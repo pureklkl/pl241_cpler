@@ -344,7 +344,9 @@ public class StaticSingleAssignment extends Instruction {
 	}
 	
 	public boolean cseEqual(StaticSingleAssignment arg0){
-		if(arg0.ops.size()!=this.ops.size()||arg0.insType!=this.insType)
+		if(insType == load&&ops.get(1)!=null&&ops.get(1).getType()==opFunc)
+			return false;
+		else if(arg0.ops.size()!=this.ops.size()||arg0.insType!=this.insType)
 			return false;
 		else{
 			for(int i=0; i<ops.size();i++){

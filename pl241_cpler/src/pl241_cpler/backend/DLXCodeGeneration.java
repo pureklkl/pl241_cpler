@@ -15,6 +15,7 @@ import pl241_cpler.ir.VariableSet;
 import pl241_cpler.ir.VariableSet.function;
 import pl241_cpler.ir.VariableSet.variable;
 import pl241_cpler.ir.VariableSet.variableScope;
+import pl241_cpler.optimization.CSE;
 import pl241_cpler.optimization.CopyPropagation;
 
 public class DLXCodeGeneration {
@@ -710,8 +711,12 @@ public class DLXCodeGeneration {
 		
 		System.out.println("Copy Propagation!!!");
 		
-		CopyPropagation g = new CopyPropagation(p);
-		g.runCP();
+		//CopyPropagation g = new CopyPropagation(p);
+		//g.runCP();
+		//p.getCFG().print();
+		
+		CSE cse = new CSE(p.getCFG());
+		cse.runCSE();
 		p.getCFG().print();
 		
 		ControlFlowGraph cfg = p.getCFG();

@@ -224,7 +224,7 @@ public class VariableSet {
 	
 	public class array extends variable{
 
-		private Instruction curAddr;
+		private Stack<Instruction> curAddr = new Stack<Instruction>();
 		private ArrayList<Integer> dims;
 		private int size = 1;
 		
@@ -261,11 +261,11 @@ public class VariableSet {
 		}
 		
 		public Instruction getAddr(){
-			return curAddr;
+			return curAddr.pop();
 		}
 		
 		public void setAddr(Instruction itemAddr){
-			curAddr = itemAddr;
+			curAddr.push(itemAddr);
 		}
 		
 		public String print(){

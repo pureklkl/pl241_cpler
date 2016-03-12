@@ -118,7 +118,7 @@ public class LiveTime {
 						Integer opd = ins.getOpsInsId().get(i2);
 						int insType = ins.getInsType();
 						if(opd!=null 
-						   && !((insType == move||insType == load) && i2 == 1)//this is output
+						   && !(ins.getOps().size()==2&&(insType == move||insType == load) && i2 == 1)//this is output, move scale/kill->load
 						   && insType!=phi){//phi is process separately
 							if(b.getFirstInsSeqId()<=ins.getSeqId()-1)
 								lr.get(opd).addRange(b.getFirstInsSeqId(), ins.getSeqId()-1);//
