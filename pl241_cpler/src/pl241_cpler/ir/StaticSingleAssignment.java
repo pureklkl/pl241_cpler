@@ -343,12 +343,26 @@ public class StaticSingleAssignment extends Instruction {
 		return insprint;
 	}
 	
+	private boolean arthEqual(StaticSingleAssignment arg0, StaticSingleAssignment arg1){
+		Operand o0a = arg0.getOp(0), o0b = arg0.getOp(1),
+				o1a = arg1.getOp(0), o1b = arg1.getOp(1),
+				v0a = arg0.version.get(0), v0b=arg0.version.get(1),
+				v1a = arg1.version.get(0), v1b=arg1.version.get(1);
+		if(o0a==o1a&&o0b==o1b&&v0a==v1a&&v0b==v1b||
+		   o0a==o1b&&o0b==o1a&&v0a==v1b&&v0b==v1a)
+			return true;
+		else
+			return false;		
+	}
+	
 	public boolean cseEqual(StaticSingleAssignment arg0){
 		if(insType == load&&ops.get(1)!=null&&ops.get(1).getType()==opFunc)
 			return false;
 		else if(arg0.ops.size()!=this.ops.size()||arg0.insType!=this.insType)
 			return false;
-		else{
+		else if(this.insType == add||this.insType == mul){
+			return arthEqual(this, arg0);
+		}else{
 			for(int i=0; i<ops.size();i++){
 				if((ops.get(i)==null&&arg0.ops.get(i)!=null)||(ops.get(i)!=null&&arg0.ops.get(i)==null))
 					return false;

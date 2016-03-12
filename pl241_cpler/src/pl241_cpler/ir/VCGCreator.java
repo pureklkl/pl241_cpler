@@ -22,6 +22,12 @@ public class VCGCreator {
 		this.cfg = cfg;
 	}
 	
+	public VCGCreator(String sourceName, ControlFlowGraph cfg, String addedName){
+		String[] sp = sourceName.split("[\\/.]");
+		this.sourceName = sp[sp.length-2]+addedName;
+		this.cfg = cfg;
+	}
+	
 	private void printEdge(int from, int to){
         writer.println("edge: { sourcename: \"" + from + "\"");
         writer.println("targetname: \"" + to + "\"");

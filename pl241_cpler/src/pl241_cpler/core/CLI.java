@@ -11,6 +11,7 @@ import pl241_cpler.frontend.Parser;
 import pl241_cpler.ir.ControlFlowGraph;
 import pl241_cpler.ir.Instruction;
 import pl241_cpler.ir.StaticSingleAssignment;
+import pl241_cpler.ir.VCGCreator;
 import pl241_cpler.ir.VariableSet;
 import pl241_cpler.optimization.CSE;
 import pl241_cpler.optimization.CopyPropagation;
@@ -19,21 +20,36 @@ import pl241_cpler.simulator.DLXCode;
 import pl241_cpler.simulator.DLXdebuger;
 
 public class CLI {
+	
+	static boolean cp = false, cse = false;
+	
+	static void parseOption(String[] args){
+		for(int i = 1; i<args.length;i++){
+			if(args[i].compareToIgnoreCase("cp")==0)
+				cp = true;
+			if(args[i].compareToIgnoreCase("cse")==0)
+				cse = true;
+		}
+	}
+	
 	static void run(String[] args) throws IOException{
 		Instruction.genSSA();
 		Parser p = new Parser(args[0]);
 		p.startParse();
 		ControlFlowGraph cfg = p.getCFG();
 		VariableSet varSet = p.getVarSet();
+		VCGCreator normVcg = new VCGCreator(args[0], cfg);
 		
-		CopyPropagation g = new CopyPropagation(p);
-		g.runCP();
-		p.getCFG().print();
-		
-		CSE cse = new CSE(p.getCFG());
-		cse.runCSE();
-		p.getCFG().print();
-		
+		if(cp){
+			CopyPropagation g = new CopyPropagation(p);
+			g.runCP();
+			p.getCFG().print();
+		}
+		if(cse){
+			CSE cse = new CSE(p.getCFG());
+			cse.runCSE();
+			p.getCFG().print();
+		}
 		LiveTime lt = new LiveTime(cfg);
 		lt.analysisLiveTime();
 		int maxReg = 8;
