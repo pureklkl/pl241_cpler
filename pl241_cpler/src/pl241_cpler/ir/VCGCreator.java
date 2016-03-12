@@ -52,7 +52,7 @@ public class VCGCreator {
         for(Instruction ins:b.getInsList()){
         	if(printREG){
         		if(ins.getType()!=phi){
-        			writer.println(((StaticSingleAssignment)ins).regPrint());
+        			writer.println(((StaticSingleAssignment)ins).print());
         		}	
         	}
         	else
