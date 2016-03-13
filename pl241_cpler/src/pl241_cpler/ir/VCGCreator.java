@@ -51,7 +51,7 @@ public class VCGCreator {
         writer.println("label: \"" + b.getId() + "[");
         for(Instruction ins:b.getInsList()){
         	if(printREG){
-        		if(ins.getType()!=phi){
+        		if(ins.getInsType()!=phi){
         			writer.println(((StaticSingleAssignment)ins).print());
         		}	
         	}

@@ -21,7 +21,7 @@ import pl241_cpler.simulator.DLXdebuger;
 
 public class CLI {
 	
-	static boolean cp = false, cse = false, simulator = false;
+	static boolean cp = false, cse = false, simulator = false, debug = false;
 	
 	static void parseOption(String[] args){
 		for(int i = 1; i<args.length;i++){
@@ -31,6 +31,8 @@ public class CLI {
 				cse = true;
 			if(args[i].compareToIgnoreCase("sim")==0)
 				simulator = true;
+			if(args[i].compareToIgnoreCase("debug")==0)
+				debug = true;
 		}
 	}
 	
@@ -80,11 +82,13 @@ public class CLI {
 			exe.asmToBinary();
 			
 			int[] program = exe.getProgram();
-			
-			//DLXdebuger.load(program);
-			//DLXdebuger.debugExecute();
-			DLX.load(program);
-			DLX.execute();
+			if(debug){
+				DLXdebuger.load(program);
+				DLXdebuger.debugExecute();
+			}else{
+				DLX.load(program);
+				DLX.execute();
+			}
 		}
 	}
 	//TODO add compiler options

@@ -38,7 +38,7 @@ public class ControlFlowGraph {
 		Instruction.setCurBlock(b);
 	}
 
-	private void linkSeqBlock(Block upB, Block downB){
+	public void linkSeqBlock(Block upB, Block downB){
 		if(upB.down == null){
 			upB.down = new LinkedList<Block>();
 		}
@@ -236,6 +236,10 @@ public class ControlFlowGraph {
 			return loopEnd;
 		}
 		
+		public Block getLoopHead() {
+			return loopHead;
+		}
+
 		public LinkedList<Block> getSuccessor(){
 			return down;
 		}
@@ -256,6 +260,14 @@ public class ControlFlowGraph {
 			this.livedIn = livedIn;
 		}
 		
+		public Stack<Integer> getIfElseRoute() {
+			return ifElseRoute;
+		}
+
+		public void setIfElseRoute(Stack<Integer> ifElseRoute) {
+			this.ifElseRoute = ifElseRoute;
+		}
+
 		public int getId(){
 			return id;
 		}

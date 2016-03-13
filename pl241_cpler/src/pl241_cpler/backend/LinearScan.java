@@ -1,6 +1,7 @@
 package pl241_cpler.backend;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Stack;
@@ -195,7 +196,11 @@ public class LinearScan {
 		return om;
 	}
 	
-	private void processPhi(LinkedList<Instruction> phiInsList, LinkedList<Block> inBlock){
+	private boolean isBra(int insType){
+		return insType==bne||insType == beq||insType==ble||insType==blt||insType==bge||insType==bge||insType==bra;
+	}
+	
+	private int processPhi(LinkedList<Instruction> phiInsList, LinkedList<Block> inBlock, Block phiBlock, LinkedList<Block> funcBl, ControlFlowGraph cfg){
 		for(Block b : inBlock){
 			LinkedList<phiMap> mapList = new LinkedList<phiMap>();
 			for(int i = phiInsList.size()-1; i>=0; i--){
@@ -211,26 +216,51 @@ public class LinearScan {
 					}
 				}
 			}
+			
 			Instruction lastIns = b.getInsList().peekLast();
-			if(lastIns!=null&&lastIns.getInsType() == bra)
-				b.getInsList().addAll(b.getInsList().size()-1, orderMove(mapList));
-			else
-				b.getInsList().addAll(orderMove(mapList));
+			if(b.getSuccessor().size()>=2){//need critical edge split
+				Block jumpTo = (Block)lastIns.getOp(1);
+				Block newB = cfg.new Block();
+				newB.setIfElseRoute(phiBlock.getIfElseRoute());
+				newB.getInsList().addAll(orderMove(mapList));
+				cfg.linkSeqBlock(b, newB);
+				b.getSuccessor().remove(phiBlock);
+				funcBl.add(funcBl.indexOf(phiBlock), newB);
+				if(jumpTo == phiBlock){
+					lastIns.getOps().set(1, newB);
+					for(Block b1 : inBlock)
+						if(b1!=b){
+							Instruction lastIns1 = b1.getInsList().peekLast();
+							if(lastIns1==null||!isBra(lastIns1.getInsType()))//what if there is a branch to block which is not the phiBlock? seems not possible
+								b1.getInsList().addLast(Instruction.genIns(bra, null, phiBlock));
+						}
+				}
+				cfg.linkSeqBlock(newB, phiBlock);
+				phiBlock.getPredecessor().remove(b);
+			}else{
+				if(lastIns!=null&&lastIns.getInsType()==bra)//loop end
+					b.getInsList().addAll(b.getInsList().size()-1, orderMove(mapList));
+				else
+					b.getInsList().addAll(orderMove(mapList));
+			}
 			mapList.clear();
 		}
+		return funcBl.indexOf(phiBlock);
 	}
 	
 	private void resolution(ControlFlowGraph cfg){
 		for(LinkedList<Block> lb : cfg.getFuncSet().values()){
-			for(Block b : lb){
+			for(int i=0;i<lb.size();i++){
+				Block b = lb.get(i);
 				LinkedList<Instruction> phiInsList = new LinkedList<Instruction>();
 				for(Instruction ins : b.getInsList()){
 					if(ins.getInsType() == phi){
 						phiInsList.add(ins);
 					}
 				}
-				if(!phiInsList.isEmpty())
-					processPhi(phiInsList, b.getPredecessor());
+				if(!phiInsList.isEmpty()){
+					i=processPhi(phiInsList, b.getPredecessor(), b, lb, cfg);
+				}
 			}
 		}
 	}
@@ -344,7 +374,14 @@ public class LinearScan {
 	
 	static final int opConstant		=	3;
 	static final int move	=	43;
-	static final int bra = 46, 
+	static final int 
+					bne	=	20,
+					beq	=	21,
+					ble	=	25,
+					blt	=	23,
+					bge	=	22,
+					bgt	=	24,
+					 bra = 46, 
 			         phi = 44;
 	public static final int REG = Location.REG,//register
 							MEM = Location.MEM,//variable
