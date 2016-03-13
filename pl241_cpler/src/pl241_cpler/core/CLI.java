@@ -65,19 +65,21 @@ public class CLI {
 		allocator.allocate();
 		StaticSingleAssignment.setShowType(StaticSingleAssignment.showREG);
 		allocator.regAllocate(cfg);
-		//cfg.print();
-		VCGCreator regVCG = new VCGCreator(args[0], cfg, true);
+		VCGCreator regVCG = new VCGCreator(args[0], cfg, true, "REG");
 		regVCG.run();
+
+		DLXCodeGeneration codeGen = new DLXCodeGeneration(varSet, cfg);
+		LinkedList<Location> lsp = allocator.getSp1Sp2();
+		codeGen.setSpillRegister(lsp.get(0), lsp.get(1));
+		codeGen.assembleDLX();
+		StaticSingleAssignment.setShowType(StaticSingleAssignment.showAsm);
+		
+		varSet.printLayout();
+
+		VCGCreator asmVCG = new VCGCreator(args[0], cfg, true, "ASM");
+		asmVCG.run();
+		
 		if(simulator){
-			DLXCodeGeneration codeGen = new DLXCodeGeneration(varSet, cfg);
-			LinkedList<Location> lsp = allocator.getSp1Sp2();
-			codeGen.setSpillRegister(lsp.get(0), lsp.get(1));
-			codeGen.assembleDLX();
-			StaticSingleAssignment.setShowType(StaticSingleAssignment.showAsm);
-			
-			varSet.printLayout();
-			cfg.print();
-			
 			DLXCode exe =new DLXCode(codeGen);
 			exe.asmToBinary();
 			

@@ -31,9 +31,9 @@ public class VCGCreator {
 		this.cfg = cfg;
 	}
 	
-	public VCGCreator(String sourceName, ControlFlowGraph cfg, boolean printREG){
+	public VCGCreator(String sourceName, ControlFlowGraph cfg, boolean printREG, String addedName){
 		String[] sp = sourceName.split("[\\/.]");
-		this.sourceName = sp[sp.length-2]+"REG";
+		this.sourceName = sp[sp.length-2]+addedName;
 		this.cfg = cfg;
 		this.printREG = true;
 	}

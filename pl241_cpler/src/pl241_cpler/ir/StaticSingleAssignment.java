@@ -312,15 +312,18 @@ public class StaticSingleAssignment extends Instruction {
 	}
 	
 	public String print(){
-		String insprint = Integer.toString(id)+"\t";
-		if(seqId>=0)
-			insprint += Integer.toString(seqId)+"\t";
-		else
-			insprint += "\t";
-		if(outputId>=0)
-			insprint += Integer.toString(outputId)+"\t";
-		else
-			insprint += "\t";
+		String insprint ="";
+		if(showType!=showAsm){
+			insprint = Integer.toString(id)+"\t";
+			if(seqId>=0)
+				insprint += Integer.toString(seqId)+"\t";
+			else
+				insprint += "\t";
+			if(outputId>=0)
+				insprint += Integer.toString(outputId)+"\t";
+			else
+				insprint += "\t";
+		}
 		if(PC>=0)
 			insprint += Integer.toString(PC)+"\t";
 		else
